@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cornélius | Agenda</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+           <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+        </div>
+        <div class="brand-title">
+          <strong>Cornélius</strong>
+          <span>Agenda e Cadastro</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="index.html">Início</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="cadastro.html">Cadastro</a>
+        <a href="profissionais.html">Profissionais</a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="header">
+      <div>
+        <h1>Agenda</h1>
+        <p>Agende em qualquer dia/horário e organize por profissional.</p>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btnNew">Novo agendamento</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="grid" style="grid-template-columns: 320px 1fr; gap: 12px; align-items:end; margin-bottom: 10px;">
+        <div class="field">
+          <label for="professionalFilter">Profissional (filtro)</label>
+          <select id="professionalFilter"></select>
+        </div>
+        <div class="empty" style="margin:0;">
+          Dica: use o filtro para ver apenas a agenda de uma psicóloga.
+        </div>
+      </div>
+
+      <div id="calendarWrap">
+        <div id="calendar"></div>
+      </div>
+      <div id="calMissing" class="empty" style="display:none; margin-top:10px;">
+        Não foi possível carregar o calendário (CDN). Verifique sua conexão ou teste com Live Server.
+      </div>
+    </section>
+
+    <!-- Modal Agendamento -->
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header>
+          <h3 id="modalTitle">Agendamento</h3>
+          <button class="close-x" id="btnClose" aria-label="Fechar">×</button>
+        </header>
+
+        <div class="body">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="patientSelect">Paciente</label>
+              <select id="patientSelect"></select>
+            </div>
+            <div class="field">
+              <label for="professionalSelect">Profissional</label>
+              <select id="professionalSelect"></select>
+            </div>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="startAt">Início</label>
+              <input id="startAt" type="datetime-local"/>
+            </div>
+            <div class="field">
+              <label for="endAt">Fim</label>
+              <input id="endAt" type="datetime-local"/>
+            </div>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 0.7fr 1.3fr; gap: 12px;">
+     <div class="field">
+  <label for="color">Cor</label>
+  <select id="color">
+    <option value="#457B9D">Azul</option>
+    <option value="#2A9D8F">Verde</option>
+    <option value="#9B5DE5">Roxo</option>
+    <option value="#F4A261">Laranja</option>
+    <option value="#6C757D">Cinza</option>
+  </select>
+</div>
+
+            <div class="field">
+              <label for="notes">Observações</label>
+              <input id="notes" type="text" placeholder="Ex.: Avaliação, retorno, etc."/>
+            </div>
+          </div>
+
+          <div class="empty" style="margin-top:10px;">
+            Dica: você pode padronizar por paciente (cor) e também filtrar por profissional.
+          </div>
+        </div>
+
+        <footer>
+          <div class="actions" style="justify-content:flex-start;">
+            <button class="btn danger" id="btnDelete" style="display:none;">Excluir</button>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btnCancel">Cancelar</button>
+            <button class="btn primary" id="btnSave">Salvar</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+  <!-- Atenção: mantendo seu padrão de pasta (assets/css/js/...) -->
+  <script src="assets/css/js/app.js"></script>
+  <script src="assets/css/js/feriados.js"></script>
+  <script src="assets/css/js/agenda.js"></script>
+</body>
+</html>

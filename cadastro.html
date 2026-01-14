@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cornélius | Cadastro</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+           <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+        </div>
+        <div class="brand-title">
+          <strong>Cornélius</strong>
+          <span>Agenda e Cadastro</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+  <a href="index.html">Início</a>
+  <a href="agenda.html">Agenda</a>
+  <a href="cadastro.html">Cadastro</a>
+  <a href="profissionais.html">Profissionais</a>
+</nav>
+
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="header">
+      <div>
+        <h1>Cadastro de paciente</h1>
+        <p>Cadastro básico: nome, CPF, e-mail, telefone, endereço e cor padrão (para a agenda).</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="index.html">Voltar</a>
+      </div>
+    </div>
+
+    <section class="card soft">
+      <div class="card-title">
+        <h2>Dados do paciente</h2>
+        <small>campos essenciais</small>
+      </div>
+
+      <form id="form">
+        <div class="grid" style="grid-template-columns: 1.3fr 0.7fr; gap: 12px;">
+          <div class="field">
+            <label for="name">Nome completo *</label>
+            <input id="name" required placeholder="Ex.: Maria Aparecida"/>
+          </div>
+          <div class="field">
+            <label for="cpf">CPF *</label>
+            <input id="cpf" required placeholder="Somente números ou com pontuação"/>
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="field">
+            <label for="email">E-mail</label>
+            <input id="email" type="email" placeholder="email@exemplo.com"/>
+          </div>
+          <div class="field">
+            <label for="phone">Telefone</label>
+            <input id="phone" placeholder="(xx) xxxxx-xxxx"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="address">Endereço</label>
+          <input id="address" placeholder="Rua, número, bairro, cidade"/>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 0.45fr 1.55fr; gap: 12px;">
+          <div class="field">
+  <label for="color">Cor padrão</label>
+  <select id="color">
+    <option value="#457B9D">Azul</option>
+    <option value="#2A9D8F">Verde</option>
+    <option value="#9B5DE5">Roxo</option>
+    <option value="#F4A261">Laranja</option>
+    <option value="#6C757D">Cinza</option>
+  </select>
+</div>
+
+          <div class="empty">
+            Esta cor será usada como padrão nos agendamentos deste paciente, facilitando a leitura da agenda.
+            Você poderá alterar a cor no evento se necessário.
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top: 10px;">
+          <button type="button" class="btn" id="btnRandom">Cor aleatória</button>
+          <button type="reset" class="btn">Limpar</button>
+          <button type="submit" class="btn primary">Salvar paciente</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+ <script src="assets/css/js/app.js"></script>
+<script src="assets/css/js/index.js"></script>
+
+</body>
+</html>

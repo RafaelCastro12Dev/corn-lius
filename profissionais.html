@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cornélius | Profissionais</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+        </div>
+        <div class="brand-title">
+          <strong>Cornélius</strong>
+          <span>Profissionais</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="index.html">Início</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="cadastro.html">Cadastro</a>
+        <a href="profissionais.html">Profissionais</a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="header">
+      <div>
+        <h1>Profissionais</h1>
+        <p>Cadastre as psicólogas para atribuir atendimentos na agenda.</p>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btnAdd">Adicionar profissional</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div id="list" class="list"></div>
+      <div id="empty" class="empty" style="display:none;">
+        Nenhum profissional cadastrado.
+      </div>
+    </section>
+
+    <!-- Modal Profissional -->
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header>
+          <h3 id="modalTitle">Profissional</h3>
+          <button class="close-x" id="btnClose" aria-label="Fechar">×</button>
+        </header>
+
+        <div class="body">
+          <div class="field">
+            <label for="proName">Nome</label>
+            <input id="proName" placeholder="Ex.: Paulinha" />
+          </div>
+         <div class="field">
+  <label for="proColor">Cor (opcional)</label>
+  <select id="proColor">
+    <option value="#457B9D">Azul</option>
+    <option value="#2A9D8F">Verde</option>
+    <option value="#9B5DE5">Roxo</option>
+    <option value="#F4A261">Laranja</option>
+    <option value="#6C757D">Cinza</option>
+  </select>
+</div>
+          <div class="empty">
+            Dica: a cor do profissional é apenas visual (não afeta a cor do agendamento, que pode seguir a do paciente).
+          </div>
+        </div>
+
+        <footer>
+          <div class="actions" style="justify-content:flex-start;">
+            <button class="btn danger" id="btnDelete" style="display:none;">Excluir</button>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btnCancel">Cancelar</button>
+            <button class="btn primary" id="btnSave">Salvar</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/css/js/app.js"></script>
+  <script src="assets/css/js/profissionais.js"></script>
+</body>
+</html>

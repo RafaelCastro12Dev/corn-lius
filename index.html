@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cornélius | Início</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <!-- ícone árvore minimal -->
+          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+        </div>
+        <div class="brand-title">
+          <strong>Cornélius</strong>
+          <span>Agenda e Cadastro</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+  <a href="index.html">Início</a>
+  <a href="agenda.html">Agenda</a>
+  <a href="cadastro.html">Cadastro</a>
+  <a href="profissionais.html">Profissionais</a>
+</nav>
+
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="header">
+      <div>
+        <h1>Página inicial</h1>
+        <p>Busque pacientes por nome ou CPF e acesse rapidamente histórico e agendamentos.</p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnReset">Reset demo</button>
+        <a class="btn primary" href="cadastro.html">Novo paciente</a>
+        <a class="btn" href="agenda.html">Abrir agenda</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card soft">
+        <div class="card-title">
+          <h2>Buscar paciente</h2>
+          <small>Nome ou CPF</small>
+        </div>
+
+        <div class="field">
+          <label for="q">Pesquisa</label>
+          <input id="q" type="text" placeholder="Ex.: Rafael ou 00295261676"/>
+        </div>
+
+        <div id="results" class="list"></div>
+        <div id="empty" class="empty" style="display:none;">
+          Nenhum paciente encontrado. Cadastre um novo paciente para continuar.
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="card-title">
+          <h2>Próximos atendimentos</h2>
+          <small>visualização rápida</small>
+        </div>
+
+        <div id="upcoming" class="list"></div>
+        <div id="upcomingEmpty" class="empty" style="display:none;">
+          Nenhum agendamento futuro encontrado. Abra a Agenda e crie um atendimento.
+        </div>
+
+        <div style="margin-top:12px;">
+          <button class="btn link" id="btnGoAgenda">+ Criar agendamento</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+<script src="assets/css/js/app.js"></script>
+<script src="assets/css/js/index.js"></script>
+
+</body>
+</html>

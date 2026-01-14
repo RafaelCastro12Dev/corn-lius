@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cornélius | Paciente</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+        </div>
+        <div class="brand-title">
+          <strong>Cornélius</strong>
+          <span>Paciente</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="index.html">Início</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="cadastro.html">Cadastro</a>
+        <a href="profissionais.html">Profissionais</a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="header">
+      <div>
+        <h1 id="title">Paciente</h1>
+        <p id="subtitle">Ficha do paciente.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="index.html">Voltar</a>
+        <button class="btn" id="btnSchedule">Agendar</button>
+        <button class="btn primary" id="btnEdit">Editar dados</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <section class="card" style="padding:12px;">
+      <div class="actions" style="justify-content:flex-start;">
+        <button class="btn" id="tabHistory">Histórico</button>
+        <button class="btn" id="tabFinance">Financeiro</button>
+        <button class="btn" id="tabFinanceSettings">Config. Financeira</button>
+      </div>
+    </section>
+
+    <div class="grid">
+      <!-- LEFT: tabs content -->
+      <section class="card soft">
+
+        <!-- TAB: Histórico -->
+        <div id="panelHistory">
+          <div class="card-title">
+            <h2>Histórico</h2>
+            <small>atendimentos + anotações</small>
+          </div>
+
+          <div class="actions" style="justify-content:flex-start; margin-bottom:10px;">
+            <button class="btn primary" id="btnAddNote">Adicionar anotação</button>
+          </div>
+
+          <div id="notesList" class="list"></div>
+          <div id="notesEmpty" class="empty" style="display:none;">
+            Nenhum registro ainda. Clique em “Adicionar anotação”.
+          </div>
+        </div>
+
+        <!-- TAB: Financeiro -->
+        <div id="panelFinance" style="display:none;">
+          <div class="card-title">
+            <h2>Financeiro</h2>
+            <small>pagamentos e pendências</small>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom:12px;">
+            <div class="item">
+              <div class="meta">
+                <strong>Valor da consulta</strong>
+                <span id="sumConsultation">-</span>
+              </div>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <strong>Total pago</strong>
+                <span id="sumPaid">-</span>
+              </div>
+            </div>
+            <div class="item">
+              <div class="meta">
+                <strong>Pendências</strong>
+                <span id="sumPending">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions" style="justify-content:flex-start; margin-bottom:10px;">
+            <button class="btn primary" id="btnAddPayment">Registrar pagamento</button>
+          </div>
+
+          <div id="paymentsList" class="list"></div>
+          <div id="paymentsEmpty" class="empty" style="display:none;">
+            Nenhum pagamento registrado.
+          </div>
+        </div>
+
+        <!-- TAB: Config Financeira -->
+        <div id="panelFinanceSettings" style="display:none;">
+          <div class="card-title">
+            <h2>Configurações financeiras</h2>
+            <small>valor padrão por paciente</small>
+          </div>
+
+          <div class="field">
+            <label for="cfgConsultationValue">Valor da consulta (padrão)</label>
+            <input id="cfgConsultationValue" type="number" min="0" step="0.01" placeholder="Ex.: 180.00"/>
+          </div>
+
+          <div class="field">
+            <label for="cfgFinancialNote">Observações financeiras</label>
+            <textarea id="cfgFinancialNote" placeholder="Ex.: valor social, pacote, desconto, etc."></textarea>
+          </div>
+
+          <div class="actions" style="justify-content:flex-start;">
+            <button class="btn primary" id="btnSaveFinanceSettings">Salvar configurações</button>
+          </div>
+
+          <div class="empty" style="margin-top:12px;">
+            Dica: esse valor só serve como referência e preenche automaticamente o valor do pagamento.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: patient basic -->
+      <aside class="card">
+        <div class="card-title">
+          <h2>Dados do paciente</h2>
+          <small>cadastro básico</small>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+          <span class="pill">
+            <span class="dot" id="colorDot"></span>
+            Cor do paciente
+          </span>
+        </div>
+
+        <div id="patientFields" class="list"></div>
+
+        <div class="empty" style="margin-top:12px;">
+          Protótipo salva localmente (localStorage). No projeto final, isso vai para o banco.
+        </div>
+      </aside>
+    </div>
+
+    <!-- Modal Nota -->
+    <div class="modal-backdrop" id="noteBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <header>
+          <h3>Anotação</h3>
+          <button class="close-x" id="btnCloseNote" aria-label="Fechar">×</button>
+        </header>
+
+        <div class="body">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="noteProfessional">Profissional</label>
+              <select id="noteProfessional"></select>
+            </div>
+            <div class="field">
+              <label for="noteLinkAppt">Vincular a atendimento</label>
+              <select id="noteLinkAppt"></select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="noteWhen">Data/hora</label>
+            <input id="noteWhen" type="datetime-local"/>
+          </div>
+          <div class="field">
+            <label for="noteText">Anotação</label>
+            <textarea id="noteText"></textarea>
+          </div>
+        </div>
+
+        <footer>
+          <div class="actions" style="justify-content:flex-start;">
+            <button class="btn danger" id="btnDeleteNote" style="display:none;">Excluir</button>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btnCancelNote">Cancelar</button>
+            <button class="btn primary" id="btnSaveNote">Salvar</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Modal Pagamento -->
+    <div class="modal-backdrop" id="payBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <header>
+          <h3>Pagamento</h3>
+          <button class="close-x" id="btnClosePay" aria-label="Fechar">×</button>
+        </header>
+
+        <div class="body">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="payProfessional">Profissional</label>
+              <select id="payProfessional"></select>
+            </div>
+            <div class="field">
+              <label for="payLinkAppt">Vincular a atendimento</label>
+              <select id="payLinkAppt"></select>
+            </div>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="payAmount">Valor</label>
+              <input id="payAmount" type="number" min="0" step="0.01"/>
+            </div>
+            <div class="field">
+              <label for="payDate">Data/hora</label>
+              <input id="payDate" type="datetime-local"/>
+            </div>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="payStatus">Status</label>
+              <select id="payStatus">
+                <option value="PAID">Pago</option>
+                <option value="PENDING">Pendente</option>
+                <option value="PARTIAL">Parcial</option>
+                <option value="FREE">Isento</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="payMethod">Forma</label>
+              <select id="payMethod">
+                <option value="PIX">Pix</option>
+                <option value="CARD">Cartão</option>
+                <option value="CASH">Dinheiro</option>
+                <option value="TRANSFER">Transferência</option>
+                <option value="OTHER">Outros</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- NOVO: seção cartão -->
+          <div id="cardBox" style="display:none; margin-top: 8px;">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="field">
+                <label for="cardType">Tipo</label>
+                <select id="cardType">
+                  <option value="CREDIT">Crédito</option>
+                  <option value="DEBIT">Débito</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cardBrand">Bandeira</label>
+                <select id="cardBrand">
+                  <option value="VISA">Visa</option>
+                  <option value="MASTERCARD">Mastercard</option>
+                  <option value="ELO">Elo</option>
+                  <option value="AMEX">Amex</option>
+                  <option value="HIPERCARD">Hipercard</option>
+                  <option value="OTHER">Outros</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="field">
+                <label for="cardInstallments">Parcelas</label>
+                <select id="cardInstallments"></select>
+              </div>
+              <div class="field">
+                <label for="cardInstallmentValue">Valor por parcela</label>
+                <input id="cardInstallmentValue" disabled />
+              </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="field">
+                <label for="cardAuthorization">Autorização/NSU (opcional)</label>
+                <input id="cardAuthorization" placeholder="Ex.: 123456"/>
+              </div>
+              <div class="field">
+                <label for="cardFee">Taxa % (opcional)</label>
+                <input id="cardFee" type="number" min="0" step="0.01" placeholder="Ex.: 3.2"/>
+              </div>
+            </div>
+
+            <div class="empty" id="cardNetInfo" style="margin-top:10px;"></div>
+          </div>
+
+          <div class="field">
+            <label for="payNote">Observações</label>
+            <textarea id="payNote" placeholder="Ex.: pago na recepção, desconto, pacote..."></textarea>
+          </div>
+        </div>
+
+        <footer>
+          <div class="actions" style="justify-content:flex-start;">
+            <button class="btn danger" id="btnDeletePay" style="display:none;">Excluir</button>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btnCancelPay">Cancelar</button>
+            <button class="btn primary" id="btnSavePay">Salvar</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Modal Editar Paciente -->
+    <div class="modal-backdrop" id="editBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <header>
+          <h3>Editar paciente</h3>
+          <button class="close-x" id="btnCloseEdit" aria-label="Fechar">×</button>
+        </header>
+
+        <div class="body">
+          <div class="field">
+            <label for="eName">Nome completo</label>
+            <input id="eName"/>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="eCpf">CPF</label>
+              <input id="eCpf"/>
+            </div>
+           <div class="field">
+  <label for="eColor">Cor padrão</label>
+  <select id="eColor">
+    <option value="#457B9D">Azul</option>
+    <option value="#2A9D8F">Verde</option>
+    <option value="#9B5DE5">Roxo</option>
+    <option value="#F4A261">Laranja</option>
+    <option value="#6C757D">Cinza</option>
+  </select>
+</div>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label for="eEmail">E-mail</label>
+              <input id="eEmail" type="email"/>
+            </div>
+            <div class="field">
+              <label for="ePhone">Telefone</label>
+              <input id="ePhone"/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="eAddress">Endereço</label>
+            <input id="eAddress"/>
+          </div>
+        </div>
+
+        <footer>
+          <div class="actions">
+            <button class="btn" id="btnCancelEdit">Cancelar</button>
+            <button class="btn primary" id="btnSaveEdit">Salvar</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/css/js/app.js"></script>
+  <script src="assets/css/js/paciente.js"></script>
+</body>
+</html>
