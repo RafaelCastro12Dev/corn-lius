@@ -1,43 +1,90 @@
+/**
+ * Cornélius - Cadastro de Pacientes
+ * Versão Supabase (async/await) - COM TRATAMENTO DE ERROS
+ */
+
 (function () {
   "use strict";
+
+if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
+
 
   const C = window.Cornelius;
   C.setActiveNav();
 
-  const form = document.getElementById("form");
-  const name = document.getElementById("name");
-  const cpf = document.getElementById("cpf");
-  const email = document.getElementById("email");
-  const phone = document.getElementById("phone");
-  const address = document.getElementById("address");
-  const color = document.getElementById("color");
   const btnRandom = document.getElementById("btnRandom");
+  const form = document.getElementById("formPatient");
 
-  btnRandom.addEventListener("click", () => {
-    color.value = C.pickColor();
-  });
+  // Gerar cor aleatória
+  if (btnRandom) {
+    btnRandom.addEventListener("click", () => {
+      document.getElementById("color").value = C.pickColor();
+    });
+  }
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    try {
-      const data = C.load();
+  // Submeter formulário
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-      const patient = C.addPatient(data, {
-        name: name.value,
-        cpf: cpf.value,
-        email: email.value,
-        phone: phone.value,
-        address: address.value,
-        color: color.value
-      });
+      try {
+        const patient = {
+          name: document.getElementById("name").value.trim(),
+          cpf: document.getElementById("cpf").value.trim(),
+          email: document.getElementById("email").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+          address: document.getElementById("address").value.trim(),
+          color: document.getElementById("color").value || C.pickColor()
+        };
 
-      C.save(data);
-      C.toast("Paciente cadastrado", patient.name);
+        // Validação básica
+        if (!patient.name) {
+          C.toast("⚠️ Nome é obrigatório");
+          return;
+        }
 
-      // redirecionar para ficha do paciente
-      window.location.href = `paciente.html?id=${encodeURIComponent(patient.id)}`;
-    } catch (err) {
-      C.toast("Não foi possível salvar", err.message || String(err));
-    }
-  });
+        console.log("📝 Tentando cadastrar paciente:", patient);
+
+        // Adicionar paciente no Supabase
+        const newPatient = await C.addPatient(patient);
+
+        console.log("✅ Paciente cadastrado:", newPatient);
+
+        if (newPatient && newPatient.id) {
+          C.toast(`✅ Paciente ${newPatient.name} cadastrado!`);
+          
+          // Redirecionar para a ficha do paciente
+          setTimeout(() => {
+            window.location.href = `paciente.html?id=${encodeURIComponent(newPatient.id)}`;
+          }, 1000);
+        } else {
+          throw new Error("ID do paciente não retornado");
+        }
+      } catch (err) {
+        console.error("❌ Erro detalhado ao cadastrar:", err);
+        
+        // Mostrar mensagem de erro detalhada
+        let errorMessage = "Erro ao salvar paciente";
+        
+        if (err.message) {
+          errorMessage += ": " + err.message;
+        }
+        
+        if (err.hint) {
+          errorMessage += " (Dica: " + err.hint + ")";
+        }
+        
+        C.toast("❌ " + errorMessage);
+        
+        // Log completo do erro
+        console.error("Erro completo:", {
+          message: err.message,
+          code: err.code,
+          details: err.details,
+          hint: err.hint,
+          stack: err.stack
+        });
+      }
+    });
+  }
 })();

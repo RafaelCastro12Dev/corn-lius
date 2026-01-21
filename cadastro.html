@@ -3,16 +3,18 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Cadastro de pacientes Cornélius">
   <title>Cornélius | Cadastro</title>
   <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
   <link rel="stylesheet" href="assets/css/styles.css"/>
 </head>
 <body>
+  <!-- ========== BARRA SUPERIOR ========== -->
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">
         <div class="brand-badge" aria-hidden="true">
-           <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
         </div>
         <div class="brand-title">
           <strong>Cornélius</strong>
@@ -20,90 +22,143 @@
         </div>
       </div>
 
-      <nav class="nav">
-  <a href="index.html">Início</a>
-  <a href="agenda.html">Agenda</a>
-  <a href="cadastro.html">Cadastro</a>
-  <a href="profissionais.html">Profissionais</a>
-</nav>
-
+      <nav class="nav" role="navigation" aria-label="Menu principal">
+        <a href="index.html">Início</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="cadastro.html" class="active">Cadastro</a>
+        <a href="profissionais.html">Profissionais</a>
+      </nav>
     </div>
   </div>
 
+  <!-- ========== CONTEÚDO PRINCIPAL ========== -->
   <main class="container">
+    <!-- Header da página -->
     <div class="header">
       <div>
         <h1>Cadastro de paciente</h1>
         <p>Cadastro básico: nome, CPF, e-mail, telefone, endereço e cor padrão (para a agenda).</p>
       </div>
       <div class="actions">
-        <a class="btn" href="index.html">Voltar</a>
+        <a class="btn" href="index.html">← Voltar</a>
       </div>
     </div>
 
+    <!-- Formulário de cadastro -->
     <section class="card soft">
       <div class="card-title">
         <h2>Dados do paciente</h2>
-        <small>campos essenciais</small>
+        <small>Campos essenciais</small>
       </div>
 
-      <form id="form">
-        <div class="grid" style="grid-template-columns: 1.3fr 0.7fr; gap: 12px;">
+     <form id="formPatient">
+        <!-- Nome e CPF -->
+        <div class="grid" style="grid-template-columns: 1.3fr 0.7fr; gap: 14px;">
           <div class="field">
             <label for="name">Nome completo *</label>
-            <input id="name" required placeholder="Ex.: Maria Aparecida"/>
+            <input 
+              id="name" 
+              type="text"
+              required 
+              placeholder="Ex.: Maria Aparecida da Silva"
+              autocomplete="name"
+            />
           </div>
           <div class="field">
             <label for="cpf">CPF *</label>
-            <input id="cpf" required placeholder="Somente números ou com pontuação"/>
+            <input 
+              id="cpf" 
+              type="text"
+              required 
+              placeholder="000.000.000-00"
+              pattern="[0-9]{3}\.?[0-9]{3}\.?[0-9]{3}-?[0-9]{2}"
+              autocomplete="off"
+            />
           </div>
         </div>
 
-        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+        <!-- Email e Telefone -->
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="field">
             <label for="email">E-mail</label>
-            <input id="email" type="email" placeholder="email@exemplo.com"/>
+            <input 
+              id="email" 
+              type="email" 
+              placeholder="email@exemplo.com"
+              autocomplete="email"
+            />
           </div>
           <div class="field">
             <label for="phone">Telefone</label>
-            <input id="phone" placeholder="(xx) xxxxx-xxxx"/>
+            <input 
+              id="phone" 
+              type="tel"
+              placeholder="(11) 98765-4321"
+              autocomplete="tel"
+            />
           </div>
         </div>
 
+        <!-- Endereço -->
         <div class="field">
-          <label for="address">Endereço</label>
-          <input id="address" placeholder="Rua, número, bairro, cidade"/>
+          <label for="address">Endereço completo</label>
+          <input 
+            id="address" 
+            type="text"
+            placeholder="Rua, número, bairro, cidade - UF"
+            autocomplete="street-address"
+          />
         </div>
 
-        <div class="grid" style="grid-template-columns: 0.45fr 1.55fr; gap: 12px;">
+        <!-- Cor padrão -->
+        <div class="grid" style="grid-template-columns: 0.45fr 1.55fr; gap: 14px; align-items: start;">
           <div class="field">
-  <label for="color">Cor padrão</label>
-  <select id="color">
-    <option value="#457B9D">Azul</option>
-    <option value="#2A9D8F">Verde</option>
-    <option value="#9B5DE5">Roxo</option>
-    <option value="#F4A261">Laranja</option>
-    <option value="#6C757D">Cinza</option>
-  </select>
-</div>
-
-          <div class="empty">
-            Esta cor será usada como padrão nos agendamentos deste paciente, facilitando a leitura da agenda.
-            Você poderá alterar a cor no evento se necessário.
+            <label for="color">Cor padrão</label>
+            <select id="color">
+              <option value="#457B9D">🔵 Azul</option>
+              <option value="#2A9D8F" selected>🟢 Verde</option>
+              <option value="#9B5DE5">🟣 Roxo</option>
+              <option value="#F4A261">🟠 Laranja</option>
+              <option value="#6C757D">⚫ Cinza</option>
+            </select>
+          </div>
+          
+          <div class="empty" style="margin: 26px 0 0 0;">
+            🎨 Esta cor será usada como padrão nos agendamentos deste paciente, facilitando a leitura visual da agenda. Você poderá alterar a cor em cada evento individualmente se necessário.
           </div>
         </div>
 
-        <div class="actions" style="margin-top: 10px;">
-          <button type="button" class="btn" id="btnRandom">Cor aleatória</button>
-          <button type="reset" class="btn">Limpar</button>
-          <button type="submit" class="btn primary">Salvar paciente</button>
+        <!-- Botões de ação -->
+        <div class="actions" style="margin-top: 20px; justify-content: flex-start;">
+          <button type="button" class="btn" id="btnRandom">🎲 Cor aleatória</button>
+          <button type="reset" class="btn">Limpar formulário</button>
+          <button type="submit" class="btn primary">💾 Salvar paciente</button>
+        </div>
+
+        <!-- Info adicional -->
+        <div class="empty" style="margin-top: 20px;">
+          <strong>ℹ️ Informação:</strong> Os campos marcados com * são obrigatórios. Os dados são salvos localmente no navegador para fins de demonstração.
         </div>
       </form>
     </section>
   </main>
 
- <script src="assets/css/js/app.js"></script>
-<script src="assets/css/js/index.js"></script>
+  <!-- ========== SCRIPTS ========== -->
+ </main>
 
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Configuração -->
+<!-- Configuração -->
+<script src="assets/css/js/supabase-config.js"></script>
+
+<!-- API -->
+<script src="assets/css/js/supabase-api.js"></script>
+
+
+<!-- Script da página -->
+<script src="assets/css/js/cadastro.js"></script>
+<script src="assets/css/js/auth.js"></script>
 </body>
 </html>

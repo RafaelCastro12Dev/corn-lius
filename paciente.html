@@ -3,11 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Ficha completa do paciente Cornélius">
   <title>Cornélius | Paciente</title>
   <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
   <link rel="stylesheet" href="assets/css/styles.css"/>
 </head>
 <body>
+  <!-- ========== BARRA SUPERIOR ========== -->
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">
@@ -20,7 +22,7 @@
         </div>
       </div>
 
-      <nav class="nav">
+      <nav class="nav" role="navigation" aria-label="Menu principal">
         <a href="index.html">Início</a>
         <a href="agenda.html">Agenda</a>
         <a href="cadastro.html">Cadastro</a>
@@ -29,122 +31,164 @@
     </div>
   </div>
 
+  <!-- ========== CONTEÚDO PRINCIPAL ========== -->
   <main class="container">
+    <!-- Header da página -->
     <div class="header">
       <div>
         <h1 id="title">Paciente</h1>
-        <p id="subtitle">Ficha do paciente.</p>
+        <p id="subtitle">Ficha completa do paciente.</p>
       </div>
       <div class="actions">
-        <a class="btn" href="index.html">Voltar</a>
-        <button class="btn" id="btnSchedule">Agendar</button>
-        <button class="btn primary" id="btnEdit">Editar dados</button>
+        <a class="btn" href="index.html">← Voltar</a>
+        <button class="btn" id="btnGoAgenda">Abrir agenda</button>
+        <button class="btn primary" id="btnEdit">✏️ Editar dados</button>
       </div>
     </div>
 
-    <!-- Tabs -->
-    <section class="card" style="padding:12px;">
-      <div class="actions" style="justify-content:flex-start;">
-        <button class="btn" id="tabHistory">Histórico</button>
-        <button class="btn" id="tabFinance">Financeiro</button>
-        <button class="btn" id="tabFinanceSettings">Config. Financeira</button>
+    <!-- Tabs de navegação -->
+    <section class="card" style="padding:16px;">
+      <div class="actions" style="justify-content:flex-start; gap: 8px;">
+        <button class="btn primary" id="tabHistory">📋 Histórico</button>
+        <button class="btn" id="tabAppointments">📅 Agendamentos</button>
+        <button class="btn" id="tabFinance">💰 Financeiro</button>
+        <button class="btn" id="tabFinanceSettings">⚙️ Config. Financeira</button>
       </div>
     </section>
 
+    <!-- Grid principal: conteúdo + sidebar -->
     <div class="grid">
-      <!-- LEFT: tabs content -->
+      <!-- COLUNA ESQUERDA: Conteúdo das tabs -->
       <section class="card soft">
 
-        <!-- TAB: Histórico -->
+        <!-- ========== TAB: HISTÓRICO ========== -->
         <div id="panelHistory">
           <div class="card-title">
-            <h2>Histórico</h2>
-            <small>atendimentos + anotações</small>
+            <h2>Histórico de atendimentos</h2>
+            <small>Atendimentos + anotações</small>
           </div>
 
-          <div class="actions" style="justify-content:flex-start; margin-bottom:10px;">
-            <button class="btn primary" id="btnAddNote">Adicionar anotação</button>
+          <div class="actions" style="justify-content:flex-start; margin-bottom:14px;">
+            <button class="btn primary" id="btnAddNote">+ Adicionar anotação</button>
           </div>
 
           <div id="notesList" class="list"></div>
+          
           <div id="notesEmpty" class="empty" style="display:none;">
-            Nenhum registro ainda. Clique em “Adicionar anotação”.
+            <p>📝 Nenhum registro de atendimento ainda.</p>
+            <p><strong>Dica:</strong> Clique em "Adicionar anotação" para criar o primeiro registro.</p>
           </div>
         </div>
+<!-- ========== TAB: AGENDAMENTOS ========== -->
+<div id="panelAppointments" style="display:none;">
+  <div class="card-title">
+    <h2>Agendamentos</h2>
+    <small>Futuros e anteriores</small>
+  </div>
 
-        <!-- TAB: Financeiro -->
+  <div class="actions" style="justify-content:flex-start; margin-bottom:14px;">
+  <button class="btn primary" id="btnSchedule">Agendar</button>
+</div>
+
+
+  <h3 style="margin: 8px 0 10px;">Próximos</h3>
+  <div id="apptsUpcomingList" class="list"></div>
+  <div id="apptsUpcomingEmpty" class="empty" style="display:none;">
+    <p>📌 Nenhum agendamento futuro.</p>
+  </div>
+
+  <h3 style="margin: 18px 0 10px;">Anteriores</h3>
+  <div id="apptsPastList" class="list"></div>
+  <div id="apptsPastEmpty" class="empty" style="display:none;">
+    <p>🕘 Nenhum agendamento anterior.</p>
+  </div>
+</div>
+
+        <!-- ========== TAB: FINANCEIRO ========== -->
         <div id="panelFinance" style="display:none;">
           <div class="card-title">
-            <h2>Financeiro</h2>
-            <small>pagamentos e pendências</small>
+            <h2>Controle financeiro</h2>
+            <small>Pagamentos e pendências</small>
           </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom:12px;">
-            <div class="item">
+          <!-- Cards de resumo financeiro -->
+          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom:16px;">
+            <div class="item" style="flex-direction: column; align-items: stretch;">
               <div class="meta">
-                <strong>Valor da consulta</strong>
-                <span id="sumConsultation">-</span>
+                <strong style="color: var(--info);">Valor da consulta</strong>
+                <span id="sumConsultation" style="font-size: 18px; font-weight: 700; color: var(--text);">-</span>
               </div>
             </div>
-            <div class="item">
+            <div class="item" style="flex-direction: column; align-items: stretch;">
               <div class="meta">
-                <strong>Total pago</strong>
-                <span id="sumPaid">-</span>
+                <strong style="color: var(--success);">Total pago</strong>
+                <span id="sumPaid" style="font-size: 18px; font-weight: 700; color: var(--text);">-</span>
               </div>
             </div>
-            <div class="item">
+            <div class="item" style="flex-direction: column; align-items: stretch;">
               <div class="meta">
-                <strong>Pendências</strong>
-                <span id="sumPending">-</span>
+                <strong style="color: var(--danger);">Pendências</strong>
+                <span id="sumPending" style="font-size: 18px; font-weight: 700; color: var(--text);">-</span>
               </div>
             </div>
           </div>
 
-          <div class="actions" style="justify-content:flex-start; margin-bottom:10px;">
-            <button class="btn primary" id="btnAddPayment">Registrar pagamento</button>
+          <div class="actions" style="justify-content:flex-start; margin-bottom:14px;">
+            <button class="btn primary" id="btnAddPayment">+ Registrar pagamento</button>
           </div>
 
           <div id="paymentsList" class="list"></div>
+          
           <div id="paymentsEmpty" class="empty" style="display:none;">
-            Nenhum pagamento registrado.
+            <p>💳 Nenhum pagamento registrado ainda.</p>
           </div>
         </div>
 
-        <!-- TAB: Config Financeira -->
+        <!-- ========== TAB: CONFIG FINANCEIRA ========== -->
         <div id="panelFinanceSettings" style="display:none;">
           <div class="card-title">
             <h2>Configurações financeiras</h2>
-            <small>valor padrão por paciente</small>
+            <small>Valor padrão por paciente</small>
           </div>
 
           <div class="field">
-            <label for="cfgConsultationValue">Valor da consulta (padrão)</label>
-            <input id="cfgConsultationValue" type="number" min="0" step="0.01" placeholder="Ex.: 180.00"/>
+            <label for="cfgConsultationValue">Valor padrão da consulta (R$)</label>
+            <input 
+              id="cfgConsultationValue" 
+              type="number" 
+              min="0" 
+              step="0.01" 
+              placeholder="Ex.: 180.00"
+            />
           </div>
 
           <div class="field">
             <label for="cfgFinancialNote">Observações financeiras</label>
-            <textarea id="cfgFinancialNote" placeholder="Ex.: valor social, pacote, desconto, etc."></textarea>
+            <textarea 
+              id="cfgFinancialNote" 
+              placeholder="Ex.: valor social, pacote de sessões, desconto especial, convênio, etc."
+              style="min-height: 120px;"
+            ></textarea>
           </div>
 
           <div class="actions" style="justify-content:flex-start;">
-            <button class="btn primary" id="btnSaveFinanceSettings">Salvar configurações</button>
+            <button class="btn primary" id="btnSaveFinanceSettings">💾 Salvar configurações</button>
           </div>
 
-          <div class="empty" style="margin-top:12px;">
-            Dica: esse valor só serve como referência e preenche automaticamente o valor do pagamento.
+          <div class="empty" style="margin-top:16px;">
+            💡 <strong>Dica:</strong> Esse valor serve como referência e preencherá automaticamente o campo de valor ao registrar um novo pagamento.
           </div>
         </div>
       </section>
 
-      <!-- RIGHT: patient basic -->
+      <!-- COLUNA DIREITA: Dados básicos do paciente -->
       <aside class="card">
         <div class="card-title">
-          <h2>Dados do paciente</h2>
-          <small>cadastro básico</small>
+          <h2>Dados cadastrais</h2>
+          <small>Informações básicas</small>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:14px;">
           <span class="pill">
             <span class="dot" id="colorDot"></span>
             Cor do paciente
@@ -153,78 +197,88 @@
 
         <div id="patientFields" class="list"></div>
 
-        <div class="empty" style="margin-top:12px;">
-          Protótipo salva localmente (localStorage). No projeto final, isso vai para o banco.
+        <div class="empty" style="margin-top:16px;">
+           ℹ️ Informações do sistema
+Os dados exibidos nesta tela são armazenados de forma segura e vinculados ao paciente no sistema.
         </div>
       </aside>
     </div>
 
-    <!-- Modal Nota -->
-    <div class="modal-backdrop" id="noteBackdrop">
-      <div class="modal" role="dialog" aria-modal="true">
+    <!-- ========== MODAL: ANOTAÇÃO ========== -->
+    <div class="modal-backdrop" id="noteBackdrop" role="dialog" aria-modal="true">
+      <div class="modal">
         <header>
-          <h3>Anotação</h3>
+          <h3>Nova anotação</h3>
           <button class="close-x" id="btnCloseNote" aria-label="Fechar">×</button>
         </header>
 
         <div class="body">
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="field">
               <label for="noteProfessional">Profissional</label>
               <select id="noteProfessional"></select>
             </div>
             <div class="field">
               <label for="noteLinkAppt">Vincular a atendimento</label>
-              <select id="noteLinkAppt"></select>
+              <select id="noteLinkAppt">
+                <option value="">Nenhum</option>
+              </select>
             </div>
           </div>
 
           <div class="field">
-            <label for="noteWhen">Data/hora</label>
+            <label for="noteWhen">Data/hora do registro</label>
             <input id="noteWhen" type="datetime-local"/>
           </div>
+          
           <div class="field">
-            <label for="noteText">Anotação</label>
-            <textarea id="noteText"></textarea>
+            <label for="noteText">Anotação clínica</label>
+            <textarea 
+              id="noteText" 
+              placeholder="Descreva observações sobre o atendimento, evolução do paciente, etc."
+              style="min-height: 140px;"
+            ></textarea>
           </div>
         </div>
 
         <footer>
           <div class="actions" style="justify-content:flex-start;">
-            <button class="btn danger" id="btnDeleteNote" style="display:none;">Excluir</button>
+            <button class="btn danger" id="btnDeleteNote" style="display:none;">🗑️ Excluir</button>
           </div>
           <div class="actions">
             <button class="btn" id="btnCancelNote">Cancelar</button>
-            <button class="btn primary" id="btnSaveNote">Salvar</button>
+            <button class="btn primary" id="btnSaveNote">💾 Salvar anotação</button>
           </div>
         </footer>
       </div>
     </div>
 
-    <!-- Modal Pagamento -->
-    <div class="modal-backdrop" id="payBackdrop">
-      <div class="modal" role="dialog" aria-modal="true">
+    <!-- ========== MODAL: PAGAMENTO ========== -->
+    <div class="modal-backdrop" id="payBackdrop" role="dialog" aria-modal="true">
+      <div class="modal">
         <header>
-          <h3>Pagamento</h3>
+          <h3>Registrar pagamento</h3>
           <button class="close-x" id="btnClosePay" aria-label="Fechar">×</button>
         </header>
 
         <div class="body">
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="field">
               <label for="payProfessional">Profissional</label>
               <select id="payProfessional"></select>
             </div>
             <div class="field">
               <label for="payLinkAppt">Vincular a atendimento</label>
-              <select id="payLinkAppt"></select>
+              <select id="payLinkAppt">
+                <option value="">Nenhum</option>
+              </select>
             </div>
           </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="field">
-              <label for="payAmount">Valor</label>
-              <input id="payAmount" type="number" min="0" step="0.01"/>
+              <label for="payAmount">Valor (R$)</label>
+              <input id="payAmount" type="number" min="0" step="0.01" placeholder="0.00"/>
             </div>
             <div class="field">
               <label for="payDate">Data/hora</label>
@@ -232,33 +286,35 @@
             </div>
           </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="field">
-              <label for="payStatus">Status</label>
+              <label for="payStatus">Status do pagamento</label>
               <select id="payStatus">
-                <option value="PAID">Pago</option>
-                <option value="PENDING">Pendente</option>
-                <option value="PARTIAL">Parcial</option>
-                <option value="FREE">Isento</option>
+                <option value="PAID">✅ Pago</option>
+                <option value="PENDING">⏳ Pendente</option>
+                <option value="PARTIAL">📊 Parcial</option>
+                <option value="FREE">🎁 Isento</option>
               </select>
             </div>
             <div class="field">
-              <label for="payMethod">Forma</label>
+              <label for="payMethod">Forma de pagamento</label>
               <select id="payMethod">
-                <option value="PIX">Pix</option>
-                <option value="CARD">Cartão</option>
-                <option value="CASH">Dinheiro</option>
-                <option value="TRANSFER">Transferência</option>
-                <option value="OTHER">Outros</option>
+                <option value="PIX">📱 Pix</option>
+                <option value="CARD">💳 Cartão</option>
+                <option value="CASH">💵 Dinheiro</option>
+                <option value="TRANSFER">🏦 Transferência</option>
+                <option value="OTHER">➕ Outros</option>
               </select>
             </div>
           </div>
 
-          <!-- NOVO: seção cartão -->
-          <div id="cardBox" style="display:none; margin-top: 8px;">
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <!-- Seção específica para cartão -->
+          <div id="cardBox" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1.5px dashed var(--border);">
+            <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--muted);">💳 Detalhes do cartão</h4>
+            
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
               <div class="field">
-                <label for="cardType">Tipo</label>
+                <label for="cardType">Tipo de cartão</label>
                 <select id="cardType">
                   <option value="CREDIT">Crédito</option>
                   <option value="DEBIT">Débito</option>
@@ -277,7 +333,7 @@
               </div>
             </div>
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
               <div class="field">
                 <label for="cardInstallments">Parcelas</label>
                 <select id="cardInstallments"></select>
@@ -288,7 +344,7 @@
               </div>
             </div>
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
               <div class="field">
                 <label for="cardAuthorization">Autorização/NSU (opcional)</label>
                 <input id="cardAuthorization" placeholder="Ex.: 123456"/>
@@ -299,86 +355,102 @@
               </div>
             </div>
 
-            <div class="empty" id="cardNetInfo" style="margin-top:10px;"></div>
+            <div class="empty" id="cardNetInfo" style="margin-top:12px;"></div>
           </div>
 
           <div class="field">
-            <label for="payNote">Observações</label>
-            <textarea id="payNote" placeholder="Ex.: pago na recepção, desconto, pacote..."></textarea>
+            <label for="payNote">Observações sobre o pagamento</label>
+            <textarea 
+              id="payNote" 
+              placeholder="Ex.: pago na recepção, desconto aplicado, pacote de sessões, etc."
+              style="min-height: 80px;"
+            ></textarea>
           </div>
         </div>
 
         <footer>
           <div class="actions" style="justify-content:flex-start;">
-            <button class="btn danger" id="btnDeletePay" style="display:none;">Excluir</button>
+            <button class="btn danger" id="btnDeletePay" style="display:none;">🗑️ Excluir</button>
           </div>
           <div class="actions">
             <button class="btn" id="btnCancelPay">Cancelar</button>
-            <button class="btn primary" id="btnSavePay">Salvar</button>
+            <button class="btn primary" id="btnSavePay">💾 Salvar pagamento</button>
           </div>
         </footer>
       </div>
     </div>
 
-    <!-- Modal Editar Paciente -->
-    <div class="modal-backdrop" id="editBackdrop">
-      <div class="modal" role="dialog" aria-modal="true">
+    <!-- ========== MODAL: EDITAR PACIENTE ========== -->
+    <div class="modal-backdrop" id="editBackdrop" role="dialog" aria-modal="true">
+      <div class="modal">
         <header>
-          <h3>Editar paciente</h3>
+          <h3>Editar dados do paciente</h3>
           <button class="close-x" id="btnCloseEdit" aria-label="Fechar">×</button>
         </header>
 
         <div class="body">
           <div class="field">
             <label for="eName">Nome completo</label>
-            <input id="eName"/>
+            <input id="eName" type="text" autocomplete="name"/>
           </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="field">
               <label for="eCpf">CPF</label>
-              <input id="eCpf"/>
+              <input id="eCpf" type="text"/>
             </div>
-           <div class="field">
-  <label for="eColor">Cor padrão</label>
-  <select id="eColor">
-    <option value="#457B9D">Azul</option>
-    <option value="#2A9D8F">Verde</option>
-    <option value="#9B5DE5">Roxo</option>
-    <option value="#F4A261">Laranja</option>
-    <option value="#6C757D">Cinza</option>
-  </select>
-</div>
+            <div class="field">
+              <label for="eColor">Cor padrão</label>
+              <select id="eColor">
+                <option value="#457B9D">🔵 Azul</option>
+                <option value="#2A9D8F">🟢 Verde</option>
+                <option value="#9B5DE5">🟣 Roxo</option>
+                <option value="#F4A261">🟠 Laranja</option>
+                <option value="#6C757D">⚫ Cinza</option>
+              </select>
+            </div>
           </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
             <div class="field">
               <label for="eEmail">E-mail</label>
-              <input id="eEmail" type="email"/>
+              <input id="eEmail" type="email" autocomplete="email"/>
             </div>
             <div class="field">
               <label for="ePhone">Telefone</label>
-              <input id="ePhone"/>
+              <input id="ePhone" type="tel" autocomplete="tel"/>
             </div>
           </div>
 
           <div class="field">
-            <label for="eAddress">Endereço</label>
-            <input id="eAddress"/>
+            <label for="eAddress">Endereço completo</label>
+            <input id="eAddress" type="text" autocomplete="street-address"/>
           </div>
         </div>
 
         <footer>
           <div class="actions">
             <button class="btn" id="btnCancelEdit">Cancelar</button>
-            <button class="btn primary" id="btnSaveEdit">Salvar</button>
+            <button class="btn primary" id="btnSaveEdit">💾 Salvar alterações</button>
           </div>
         </footer>
       </div>
     </div>
   </main>
 
-  <script src="assets/css/js/app.js"></script>
-  <script src="assets/css/js/paciente.js"></script>
+  <!-- ========== SCRIPTS ========== -->
+
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Configuração -->
+<script src="assets/css/js/supabase-config.js"></script>
+
+<!-- API -->
+<script src="assets/css/js/supabase-api.js"></script>
+
+<!-- Script da página -->
+<script src="assets/css/js/paciente.js"></script>
+<script src="assets/css/js/auth.js"></script>
 </body>
 </html>

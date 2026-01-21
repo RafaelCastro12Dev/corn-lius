@@ -1,5 +1,13 @@
+/**
+ * Cornélius - Página Inicial
+ * Versão Supabase (async/await)
+ */
+
 (function () {
   "use strict";
+
+if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
+
 
   const C = window.Cornelius;
   C.setActiveNav();
@@ -9,91 +17,192 @@
   const empty = document.getElementById("empty");
   const upcoming = document.getElementById("upcoming");
   const upcomingEmpty = document.getElementById("upcomingEmpty");
+const btnGoAgendaTop = document.getElementById("btnGoAgendaTop");
+const btnGoAgenda = document.getElementById("btnGoAgenda");
 
-  const btnReset = document.getElementById("btnReset");
-  const btnGoAgenda = document.getElementById("btnGoAgenda");
+function goAgenda() {
+  window.location.href = "agenda.html";
+}
 
-  function renderPatients(list) {
-    results.innerHTML = "";
-    if (!list.length) {
-      empty.style.display = "block";
+function goAgendaNew() {
+  window.location.href = "agenda.html?new=1";
+}
+
+if (btnGoAgendaTop) btnGoAgendaTop.addEventListener("click", goAgenda);     // Abrir agenda
+if (btnGoAgenda) btnGoAgenda.addEventListener("click", goAgendaNew);       // Criar agendamento
+
+  // ============================================================================
+  // BUSCAR PACIENTES
+  // ============================================================================
+
+  async function search() {
+    const query = q.value.trim();
+
+    if (!query) {
+      results.innerHTML = "";
+      results.style.display = "none";
+      empty.style.display = "none";
       return;
     }
-    empty.style.display = "none";
 
-    list.forEach(p => {
-      const el = document.createElement("div");
-      el.className = "item";
-      el.innerHTML = `
-        <div class="meta">
-          <strong>${C.escapeHtml(p.name)}</strong>
-          <span>CPF: ${C.escapeHtml(p.cpf)} · Tel: ${C.escapeHtml(p.phone || "-")}</span>
-        </div>
-        <div class="pill" title="Cor do paciente">
-          <span class="dot" style="background:${C.escapeHtml(p.color || "#7FDCAC")}"></span>
-          Ver ficha
-        </div>
-      `;
-      el.style.cursor = "pointer";
-      el.addEventListener("click", () => {
-        window.location.href = `paciente.html?id=${encodeURIComponent(p.id)}`;
-      });
-      results.appendChild(el);
+    try {
+      const patients = await C.searchPatients(query);
+
+      if (!patients || patients.length === 0) {
+        results.style.display = "none";
+        empty.style.display = "block";
+        return;
+      }
+
+      results.style.display = "block";
+      empty.style.display = "none";
+
+      results.innerHTML = patients
+        .map((p) => {
+          const colorDot = `<span class="color-dot" style="background:${C.escapeHtml(p.color)}"></span>`;
+          const cpfFormatted = p.cpf ? C.formatCPF(p.cpf) : "";
+          const cpfInfo = cpfFormatted 
+            ? `<div class="text-sm text-secondary">CPF: ${cpfFormatted}</div>` 
+            : "";
+
+          return `
+            <a href="paciente.html?id=${encodeURIComponent(p.id)}" class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">
+                  ${colorDot}
+                  ${C.escapeHtml(p.name)}
+                </div>
+                ${cpfInfo}
+              </div>
+              <span class="text-secondary">→</span>
+            </a>
+          `;
+        })
+        .join("");
+    } catch (err) {
+      console.error("❌ Erro ao buscar pacientes:", err);
+      C.toast("❌ Erro ao buscar pacientes");
+    }
+  }
+
+  // ============================================================================
+  // PRÓXIMOS ATENDIMENTOS
+  // ============================================================================
+
+  async function loadUpcoming() {
+    try {
+      const appointments = await C.getUpcomingAppointments(5);
+
+      if (!appointments || appointments.length === 0) {
+        upcoming.style.display = "none";
+        upcomingEmpty.style.display = "block";
+        return;
+      }
+
+      upcoming.style.display = "block";
+      upcomingEmpty.style.display = "none";
+
+      upcoming.innerHTML = appointments
+        .map((a) => {
+          const patient = a.patient || {};
+          const professional = a.professional || {};
+
+          const patientName = patient.name || "Paciente não encontrado";
+          const profName = professional.name || "";
+          const colorDot = patient.color 
+            ? `<span class="color-dot" style="background:${C.escapeHtml(patient.color)}"></span>`
+            : "";
+
+          // Formatar data e hora
+          const startDate = new Date(a.start_time);
+          const dateStr = startDate.toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          });
+          const timeStr = startDate.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+
+          const profInfo = profName 
+            ? `<span class="text-secondary">com ${C.escapeHtml(profName)}</span>` 
+            : "";
+
+          const roomInfo = a.room 
+            ? `<span class="badge">${C.escapeHtml(a.room)}</span>` 
+            : "";
+
+          return `
+            <div class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">
+                  ${colorDot}
+                  ${C.escapeHtml(patientName)}
+                  ${profInfo}
+                </div>
+                <div class="text-sm text-secondary">
+                  📅 ${dateStr} às ${timeStr}
+                  ${roomInfo}
+                </div>
+              </div>
+              <a href="paciente.html?id=${encodeURIComponent(patient.id || '')}" 
+                 class="btn-link" 
+                 title="Ver ficha">
+                →
+              </a>
+            </div>
+          `;
+        })
+        .join("");
+    } catch (err) {
+      console.error("❌ Erro ao carregar próximos atendimentos:", err);
+      C.toast("❌ Erro ao carregar atendimentos");
+    }
+  }
+
+  // ============================================================================
+  // RESET DEMO
+  // ============================================================================
+
+// Rodar busca se o campo já tiver valor ao abrir/voltar para a página
+function runSearchIfNeeded() {
+  if (!q) return;
+  const v = (q.value || "").trim();
+  if (v) search();
+}
+
+// ao carregar
+runSearchIfNeeded();
+
+// ao voltar pelo botão "Voltar" do navegador (bfcache)
+window.addEventListener("pageshow", runSearchIfNeeded);
+
+
+  // ============================================================================
+  // EVENT LISTENERS
+  // ============================================================================
+
+  if (q) {
+    // Buscar ao digitar (debounce)
+    let timeout = null;
+    q.addEventListener("input", () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(search, 300);
+    });
+
+    // Buscar ao pressionar Enter
+    q.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        clearTimeout(timeout);
+        search();
+      }
     });
   }
 
-  function renderUpcoming(data) {
-    upcoming.innerHTML = "";
-    const list = C.getUpcomingAppointments(data, 6);
-    if (!list.length) {
-      upcomingEmpty.style.display = "block";
-      return;
-    }
-    upcomingEmpty.style.display = "none";
+  // ============================================================================
+  // INICIALIZAÇÃO
+  // ============================================================================
 
-    list.forEach(a => {
-      const patient = C.getPatientById(data, a.patientId);
-      const el = document.createElement("div");
-      el.className = "item";
-      el.innerHTML = `
-        <div class="meta">
-          <strong>${C.escapeHtml(patient ? patient.name : "Paciente")}</strong>
-          <span>${C.escapeHtml(C.humanDateTime(a.start))}</span>
-          <span style="margin-top:4px; color: var(--muted); font-size:12px;">
-            ${C.escapeHtml(a.notes || "")}
-          </span>
-        </div>
-        <div class="pill">
-          <span class="dot" style="background:${C.escapeHtml(a.color || (patient?.color || "#7FDCAC"))}"></span>
-          Agenda
-        </div>
-      `;
-      el.style.cursor = "pointer";
-      el.addEventListener("click", () => {
-        window.location.href = `agenda.html?focus=${encodeURIComponent(a.id)}`;
-      });
-      upcoming.appendChild(el);
-    });
-  }
-
-  function refresh() {
-    const data = C.load();
-    const list = C.searchPatients(data, q.value || "");
-    renderPatients(list);
-    renderUpcoming(data);
-  }
-
-  q.addEventListener("input", refresh);
-
-  btnGoAgenda.addEventListener("click", () => {
-    window.location.href = "agenda.html";
-  });
-
-  btnReset.addEventListener("click", () => {
-    C.resetDemo();
-    C.toast("Demo resetada", "Os dados voltaram ao padrão.");
-    refresh();
-  });
-
-  refresh();
+  loadUpcoming();
 })();

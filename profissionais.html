@@ -40,11 +40,43 @@
       </div>
     </div>
 
+    <!-- Lista -->
     <section class="card">
       <div id="list" class="list"></div>
       <div id="empty" class="empty" style="display:none;">
         Nenhum profissional cadastrado.
       </div>
+    </section>
+
+    <!-- ✅ Senha do sistema (FORA do modal) -->
+    <section class="card" style="margin-top:24px;">
+      <div class="card-title">
+        <h2>Senha do sistema</h2>
+        <small>Altera a senha de acesso da clínica</small>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+        <div>
+          <label class="label" for="oldPass">Senha atual</label>
+          <input class="input" id="oldPass" type="password" placeholder="Senha atual" autocomplete="current-password">
+        </div>
+
+        <div>
+          <label class="label" for="newPass">Nova senha</label>
+          <input class="input" id="newPass" type="password" placeholder="Nova senha" autocomplete="new-password">
+        </div>
+
+        <div>
+          <label class="label" for="newPass2">Confirmar</label>
+          <input class="input" id="newPass2" type="password" placeholder="Confirmar nova senha" autocomplete="new-password">
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" id="btnChangePass">Alterar senha</button>
+      </div>
+
+      <div id="passMsg" class="empty" style="display:none;"></div>
     </section>
 
     <!-- Modal Profissional -->
@@ -60,16 +92,28 @@
             <label for="proName">Nome</label>
             <input id="proName" placeholder="Ex.: Paulinha" />
           </div>
-         <div class="field">
-  <label for="proColor">Cor (opcional)</label>
-  <select id="proColor">
-    <option value="#457B9D">Azul</option>
-    <option value="#2A9D8F">Verde</option>
-    <option value="#9B5DE5">Roxo</option>
-    <option value="#F4A261">Laranja</option>
-    <option value="#6C757D">Cinza</option>
-  </select>
-</div>
+
+          <div class="field">
+            <label for="proEmail">Email</label>
+            <input id="proEmail" type="email" placeholder="ex.: profissional@clinica.com" autocomplete="email" />
+          </div>
+
+          <div class="field" style="display:flex; gap:12px; align-items:center;">
+            <input id="proNotifyEmail" type="checkbox" />
+            <label for="proNotifyEmail" style="margin:0;">Receber notificações por e-mail</label>
+          </div>
+
+          <div class="field">
+            <label for="proColor">Cor (opcional)</label>
+            <select id="proColor">
+              <option value="#457B9D">Azul</option>
+              <option value="#2A9D8F">Verde</option>
+              <option value="#9B5DE5">Roxo</option>
+              <option value="#F4A261">Laranja</option>
+              <option value="#6C757D">Cinza</option>
+            </select>
+          </div>
+
           <div class="empty">
             Dica: a cor do profissional é apenas visual (não afeta a cor do agendamento, que pode seguir a do paciente).
           </div>
@@ -88,7 +132,11 @@
     </div>
   </main>
 
-  <script src="assets/css/js/app.js"></script>
+  <!-- Scripts (ordem correta) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/css/js/supabase-config.js"></script>
+  <script src="assets/css/js/auth.js"></script>
+  <script src="assets/css/js/supabase-api.js"></script>
   <script src="assets/css/js/profissionais.js"></script>
 </body>
 </html>

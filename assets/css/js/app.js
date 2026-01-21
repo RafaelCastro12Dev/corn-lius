@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
+
+
   const STORAGE_KEY = "cornelius_clinica_v1";
 
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -204,60 +207,71 @@
   }
 
   function load() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const seeded = defaultData();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      return seeded;
-    }
-    try {
-      const data = JSON.parse(raw);
-
-      // Migração / garantias
-      if (!Array.isArray(data.professionals)) data.professionals = [];
-      if (!Array.isArray(data.patients)) data.patients = [];
-      if (!Array.isArray(data.appointments)) data.appointments = [];
-      if (!Array.isArray(data.notes)) data.notes = [];
-      if (!Array.isArray(data.payments)) data.payments = [];
-
-      data.patients.forEach(p => {
-        if (p.consultationValue === undefined || p.consultationValue === null) p.consultationValue = 0;
-        if (p.financialNote === undefined) p.financialNote = "";
-      });
-
-      data.appointments.forEach(a => {
-        if (a.professionalId === undefined) a.professionalId = null;
-      });
-
-      data.notes.forEach(n => {
-        if (n.createdAt === undefined) n.createdAt = new Date().toISOString();
-        if (n.appointmentId === undefined) n.appointmentId = null;
-        if (n.professionalId === undefined) n.professionalId = null;
-      });
-
-      data.payments.forEach(p => {
-        if (p.appointmentId === undefined) p.appointmentId = null;
-        if (p.professionalId === undefined) p.professionalId = null;
-        if (typeof p.amount !== "number") p.amount = Number(p.amount || 0);
-        if (!p.status) p.status = PAYMENT_STATUS.PAID;
-        if (!p.method) p.method = PAYMENT_METHOD.PIX;
-        if (!p.paidAt) p.paidAt = new Date().toISOString();
-        if (p.note === undefined) p.note = "";
-
-        // NOVO: card
-        if (p.card === undefined) p.card = null;
-        p.card = normalizeCard(p.card);
-        // Se não for cartão, garante null para evitar sujeira
-        if (p.method !== PAYMENT_METHOD.CARD) p.card = null;
-      });
-
-      return data;
-    } catch (e) {
-      const seeded = defaultData();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      return seeded;
-    }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    const seeded = defaultData();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+    return seeded;
   }
+
+  try {
+    const data = JSON.parse(raw);
+
+    // Migração / garantias
+    if (!Array.isArray(data.professionals)) data.professionals = [];
+    if (!Array.isArray(data.patients)) data.patients = [];
+    if (!Array.isArray(data.appointments)) data.appointments = [];
+    if (!Array.isArray(data.notes)) data.notes = [];
+    if (!Array.isArray(data.payments)) data.payments = [];
+
+    // NOVO: migração para profissionais (email + preferência)
+    data.professionals.forEach(p => {
+      if (p.email === undefined) p.email = "";
+      if (p.notify_email_enabled === undefined) p.notify_email_enabled = true;
+    });
+
+    // Migração pacientes
+    data.patients.forEach(p => {
+      if (p.consultationValue === undefined || p.consultationValue === null) p.consultationValue = 0;
+      if (p.financialNote === undefined) p.financialNote = "";
+    });
+
+    // Migração appointments
+    data.appointments.forEach(a => {
+      if (a.professionalId === undefined) a.professionalId = null;
+      if (a.room === undefined) a.room = "";
+    });
+
+    // Migração notes
+    data.notes.forEach(n => {
+      if (n.createdAt === undefined) n.createdAt = new Date().toISOString();
+      if (n.appointmentId === undefined) n.appointmentId = null;
+      if (n.professionalId === undefined) n.professionalId = null;
+    });
+
+    // Migração payments
+    data.payments.forEach(p => {
+      if (p.appointmentId === undefined) p.appointmentId = null;
+      if (p.professionalId === undefined) p.professionalId = null;
+      if (typeof p.amount !== "number") p.amount = Number(p.amount || 0);
+      if (!p.status) p.status = PAYMENT_STATUS.PAID;
+      if (!p.method) p.method = PAYMENT_METHOD.PIX;
+      if (!p.paidAt) p.paidAt = new Date().toISOString();
+      if (p.note === undefined) p.note = "";
+
+      if (p.card === undefined) p.card = null;
+      p.card = normalizeCard(p.card);
+      if (p.method !== PAYMENT_METHOD.CARD) p.card = null;
+    });
+
+    return data;
+  } catch (e) {
+    const seeded = defaultData();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+    return seeded;
+  }
+}
+
 
   function save(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -336,19 +350,56 @@
 
   // ---- Professionals ----
   function addProfessional(data, payload) {
-    const name = String(payload.name || "").trim();
-    if (!name) throw new Error("Nome do profissional é obrigatório.");
-    const pro = { id: uid("pro"), name, color: payload.color || "#7FDCAC" };
-    data.professionals.push(pro);
-    return pro;
+  const name = String(payload.name || "").trim();
+  if (!name) throw new Error("Nome do profissional é obrigatório.");
+
+  const email = String(payload.email || "").trim().toLowerCase();
+  const notifyEnabled = (payload.notify_email_enabled !== false); // default true
+
+  // Se notificações estiverem ligadas, exige email válido
+  if (notifyEnabled) {
+    if (!email) throw new Error("Informe o email do profissional (ou desative notificações).");
+    const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!okEmail) throw new Error("Email inválido.");
   }
+
+  const pro = {
+    id: uid("pro"),
+    name,
+    color: payload.color || "#7FDCAC",
+    email,
+    notify_email_enabled: notifyEnabled
+  };
+
+  data.professionals.push(pro);
+  return pro;
+}
+
   function updateProfessional(data, proId, patch) {
-    const idx = data.professionals.findIndex(p => p.id === proId);
-    if (idx < 0) throw new Error("Profissional não encontrado.");
-    if (patch.name != null) data.professionals[idx].name = String(patch.name).trim();
-    if (patch.color != null) data.professionals[idx].color = patch.color;
-    return data.professionals[idx];
+  const idx = data.professionals.findIndex(p => p.id === proId);
+  if (idx < 0) throw new Error("Profissional não encontrado.");
+
+  if (patch.name != null) data.professionals[idx].name = String(patch.name).trim();
+  if (patch.color != null) data.professionals[idx].color = patch.color;
+
+  if (patch.email !== undefined) {
+    data.professionals[idx].email = String(patch.email || "").trim().toLowerCase();
   }
+  if (patch.notify_email_enabled !== undefined) {
+    data.professionals[idx].notify_email_enabled = !!patch.notify_email_enabled;
+  }
+
+  // validação final
+  const pro = data.professionals[idx];
+  if (pro.notify_email_enabled !== false) {
+    if (!pro.email) throw new Error("Informe o email do profissional (ou desative notificações).");
+    const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pro.email);
+    if (!okEmail) throw new Error("Email inválido.");
+  }
+
+  return pro;
+}
+
   function deleteProfessional(data, proId) {
     const inUse =
       data.appointments.some(a => a.professionalId === proId) ||
@@ -361,23 +412,25 @@
   }
 
   // ---- Appointments ----
-  function addAppointment(data, payload) {
-    const appt = {
-      id: uid("a"),
-      patientId: payload.patientId,
-      professionalId: payload.professionalId || null,
-      start: payload.start,
-      end: payload.end,
-      color: payload.color,
-      notes: (payload.notes || "").trim()
-    };
-    data.appointments.push(appt);
-    return appt;
-  }
+ function addAppointment(data, payload) {
+  const appt = {
+    id: uid("a"),
+    patientId: payload.patientId,
+    professionalId: payload.professionalId || null,
+    start: payload.start,
+    end: payload.end,
+    color: payload.color,
+    notes: (payload.notes || "").trim(),
+    room: String(payload.room || "").trim()   // <-- ADD
+  };
+  data.appointments.push(appt);
+  return appt;
+}
+
   function updateAppointment(data, apptId, patch) {
     const idx = data.appointments.findIndex(a => a.id === apptId);
     if (idx < 0) throw new Error("Agendamento não encontrado.");
-    ["patientId","professionalId","start","end","color","notes"].forEach(k => {
+    ["patientId","professionalId","start","end","color","notes","room"].forEach(k => {
       if (patch[k] != null) data.appointments[idx][k] = patch[k];
     });
     return data.appointments[idx];

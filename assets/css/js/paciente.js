@@ -1,795 +1,1021 @@
+/**
+ * Cornélius - Paciente (compatível com paciente.html atual)
+ * Tabs: Histórico, Financeiro, Config. Financeira
+ * Modais: Anotação, Pagamento, Editar Paciente
+ */
 (function () {
   "use strict";
 
+if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
+
+
   const C = window.Cornelius;
-  C.setActiveNav();
 
-  const title = document.getElementById("title");
-  const subtitle = document.getElementById("subtitle");
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+  const $ = (id) => document.getElementById(id);
 
-  const colorDot = document.getElementById("colorDot");
-  const patientFields = document.getElementById("patientFields");
+  function qs(key) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(key);
+  }
 
-  // Tabs
-  const tabHistory = document.getElementById("tabHistory");
-  const tabFinance = document.getElementById("tabFinance");
-  const tabFinanceSettings = document.getElementById("tabFinanceSettings");
+  function safeOn(el, evt, fn) {
+    if (!el) return;
+    el.addEventListener(evt, fn);
+  }
 
-  const panelHistory = document.getElementById("panelHistory");
-  const panelFinance = document.getElementById("panelFinance");
-  const panelFinanceSettings = document.getElementById("panelFinanceSettings");
+  function show(el) {
+    if (el) el.classList.add("show");
+  }
 
-  // History (notes timeline)
-  const notesList = document.getElementById("notesList");
-  const notesEmpty = document.getElementById("notesEmpty");
-  const btnAddNote = document.getElementById("btnAddNote");
+  function hide(el) {
+    if (el) el.classList.remove("show");
+  }
 
-  // Finance
-  const sumConsultation = document.getElementById("sumConsultation");
-  const sumPaid = document.getElementById("sumPaid");
-  const sumPending = document.getElementById("sumPending");
-  const btnAddPayment = document.getElementById("btnAddPayment");
-  const paymentsList = document.getElementById("paymentsList");
-  const paymentsEmpty = document.getElementById("paymentsEmpty");
+  function fmtDateTimeLocal(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const mm = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const mi = pad(d.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  }
 
-  // Finance settings
-  const cfgConsultationValue = document.getElementById("cfgConsultationValue");
-  const cfgFinancialNote = document.getElementById("cfgFinancialNote");
-  const btnSaveFinanceSettings = document.getElementById("btnSaveFinanceSettings");
+  function parseDateTimeLocal(value) {
+    // value = "YYYY-MM-DDTHH:mm"
+    if (!value) return null;
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
 
-  // Patient actions
-  const btnSchedule = document.getElementById("btnSchedule");
-  const btnEdit = document.getElementById("btnEdit");
+  function escapeHtml(s) {
+    if (C && typeof C.escapeHtml === "function") return C.escapeHtml(String(s ?? ""));
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-  // Note modal
-  const noteBackdrop = document.getElementById("noteBackdrop");
-  const btnCloseNote = document.getElementById("btnCloseNote");
-  const btnCancelNote = document.getElementById("btnCancelNote");
-  const btnSaveNote = document.getElementById("btnSaveNote");
-  const btnDeleteNote = document.getElementById("btnDeleteNote");
-  const noteProfessional = document.getElementById("noteProfessional");
-  const noteLinkAppt = document.getElementById("noteLinkAppt");
-  const noteWhen = document.getElementById("noteWhen");
-  const noteText = document.getElementById("noteText");
+  function toast(msg) {
+    if (C && typeof C.toast === "function") return C.toast(msg);
+    alert(msg);
+  }
 
-  // Payment modal
-  const payBackdrop = document.getElementById("payBackdrop");
-  const btnClosePay = document.getElementById("btnClosePay");
-  const btnCancelPay = document.getElementById("btnCancelPay");
-  const btnSavePay = document.getElementById("btnSavePay");
-  const btnDeletePay = document.getElementById("btnDeletePay");
-  const payProfessional = document.getElementById("payProfessional");
-  const payLinkAppt = document.getElementById("payLinkAppt");
-  const payAmount = document.getElementById("payAmount");
-  const payDate = document.getElementById("payDate");
-  const payStatus = document.getElementById("payStatus");
-  const payMethod = document.getElementById("payMethod");
-  const payNote = document.getElementById("payNote");
+  // -----------------------------
+  // Inicialização / validação
+  // -----------------------------
+  if (C && typeof C.setActiveNav === "function") C.setActiveNav();
 
-  // NOVO: Card fields
-  const cardBox = document.getElementById("cardBox");
-  const cardType = document.getElementById("cardType");
-  const cardBrand = document.getElementById("cardBrand");
-  const cardInstallments = document.getElementById("cardInstallments");
-  const cardInstallmentValue = document.getElementById("cardInstallmentValue");
-  const cardAuthorization = document.getElementById("cardAuthorization");
-  const cardFee = document.getElementById("cardFee");
-  const cardNetInfo = document.getElementById("cardNetInfo");
+  const patientId = qs("id");
+  if (!patientId) {
+    toast("⚠️ Paciente não especificado");
+    setTimeout(() => (window.location.href = "index.html"), 1200);
+    return;
+  }
 
-  // Edit patient modal
-  const editBackdrop = document.getElementById("editBackdrop");
-  const btnCloseEdit = document.getElementById("btnCloseEdit");
-  const btnCancelEdit = document.getElementById("btnCancelEdit");
-  const btnSaveEdit = document.getElementById("btnSaveEdit");
-  const eName = document.getElementById("eName");
-  const eCpf = document.getElementById("eCpf");
-  const eColor = document.getElementById("eColor");
-  const eEmail = document.getElementById("eEmail");
-  const ePhone = document.getElementById("ePhone");
-  const eAddress = document.getElementById("eAddress");
+  // -----------------------------
+  // DOM (conforme paciente.html)
+  // -----------------------------
+  // Header / ações
+  const elTitle = $("title");
+  const elSubtitle = $("subtitle");
+  const btnSchedule = $("btnSchedule");
+  const btnEdit = $("btnEdit");
 
-  let patientId = null;
+  // Sidebar
+  const colorDot = $("colorDot");
+  const patientFields = $("patientFields");
+
+  // Tabs e panels
+  const tabHistory = $("tabHistory");
+  const tabFinance = $("tabFinance");
+  const tabFinanceSettings = $("tabFinanceSettings");
+
+  const panelHistory = $("panelHistory");
+  const panelFinance = $("panelFinance");
+  const panelFinanceSettings = $("panelFinanceSettings");
+
+  // NOVO: Agendamentos
+const tabAppointments = $("tabAppointments");
+const panelAppointments = $("panelAppointments");
+
+const apptsUpcomingList = $("apptsUpcomingList");
+const apptsPastList = $("apptsPastList");
+const apptsUpcomingEmpty = $("apptsUpcomingEmpty");
+const apptsPastEmpty = $("apptsPastEmpty");
+
+  // Histórico
+  const btnAddNote = $("btnAddNote");
+  const notesList = $("notesList");
+  const notesEmpty = $("notesEmpty");
+
+  // Financeiro
+  const sumConsultation = $("sumConsultation");
+  const sumPaid = $("sumPaid");
+  const sumPending = $("sumPending");
+  const btnAddPayment = $("btnAddPayment");
+  const paymentsList = $("paymentsList");
+  const paymentsEmpty = $("paymentsEmpty");
+
+  // Config Financeira
+  const cfgConsultationValue = $("cfgConsultationValue");
+  const cfgFinancialNote = $("cfgFinancialNote");
+  const btnSaveFinanceSettings = $("btnSaveFinanceSettings");
+
+  // Modal: anotação
+  const noteBackdrop = $("noteBackdrop");
+  const btnCloseNote = $("btnCloseNote");
+  const btnCancelNote = $("btnCancelNote");
+  const btnSaveNote = $("btnSaveNote");
+  const btnDeleteNote = $("btnDeleteNote");
+
+  const noteProfessional = $("noteProfessional");
+  const noteLinkAppt = $("noteLinkAppt");
+  const noteWhen = $("noteWhen");
+  const noteText = $("noteText");
+
+  // Modal: pagamento
+  const payBackdrop = $("payBackdrop");
+  const btnClosePay = $("btnClosePay");
+  const btnCancelPay = $("btnCancelPay");
+  const btnSavePay = $("btnSavePay");
+  const btnDeletePay = $("btnDeletePay");
+
+  const payProfessional = $("payProfessional");
+  const payLinkAppt = $("payLinkAppt");
+  const payAmount = $("payAmount");
+  const payDate = $("payDate");
+  const payStatus = $("payStatus");
+  const payMethod = $("payMethod");
+  const payNote = $("payNote");
+
+  // Cartão (UI extra)
+  const cardBox = $("cardBox");
+  const cardType = $("cardType");
+  const cardBrand = $("cardBrand");
+  const cardInstallments = $("cardInstallments");
+  const cardInstallmentValue = $("cardInstallmentValue");
+  const cardAuthorization = $("cardAuthorization");
+  const cardFee = $("cardFee");
+  const cardNetInfo = $("cardNetInfo");
+
+  // Modal: editar paciente
+  const editBackdrop = $("editBackdrop");
+  const btnCloseEdit = $("btnCloseEdit");
+  const btnCancelEdit = $("btnCancelEdit");
+  const btnSaveEdit = $("btnSaveEdit");
+
+  const eName = $("eName");
+  const eCpf = $("eCpf");
+  const eEmail = $("eEmail");
+  const ePhone = $("ePhone");
+  const eAddress = $("eAddress");
+  const eColor = $("eColor");
+
+  // -----------------------------
+  // Estado
+  // -----------------------------
+  let currentPatient = null;
+  let currentTab = "history";
+
   let editingNoteId = null;
   let editingPayId = null;
 
-  function qs(name) {
-    const url = new URL(window.location.href);
-    return url.searchParams.get(name);
+  // -----------------------------
+  // Tabs
+  // -----------------------------
+  function setTab(tab) {
+    currentTab = tab;
+
+    // visual: usa .primary no HTML
+    [tabHistory, tabFinance, tabFinanceSettings, tabAppointments].forEach((b) => b && b.classList.remove("primary"));
+    if (tab === "history" && tabHistory) tabHistory.classList.add("primary");
+    if (tab === "finance" && tabFinance) tabFinance.classList.add("primary");
+    if (tab === "financeSettings" && tabFinanceSettings) tabFinanceSettings.classList.add("primary");
+   if (tab === "appointments" && tabAppointments) tabAppointments.classList.add("primary");
+
+    if (panelHistory) panelHistory.style.display = tab === "history" ? "block" : "none";
+    if (panelFinance) panelFinance.style.display = tab === "finance" ? "block" : "none";
+    if (panelFinanceSettings) panelFinanceSettings.style.display = tab === "financeSettings" ? "block" : "none";
+if (panelAppointments) panelAppointments.style.display = tab === "appointments" ? "block" : "none";
+
+    // carregar ao trocar
+    if (tab === "history") loadNotes();
+    if (tab === "finance") loadPaymentsAndSummary();
+    if (tab === "financeSettings") loadFinanceSettings();
+    if (tab === "appointments") loadPatientAppointments();
   }
 
-  function open(el) { el.style.display = "flex"; }
-  function close(el) { el.style.display = "none"; }
+  safeOn(tabHistory, "click", () => setTab("history"));
+  safeOn(tabFinance, "click", () => setTab("finance"));
+  safeOn(tabFinanceSettings, "click", () => setTab("financeSettings"));
+safeOn(tabAppointments, "click", () => setTab("appointments"));
 
-  function setTab(which) {
-    panelHistory.style.display = "none";
-    panelFinance.style.display = "none";
-    panelFinanceSettings.style.display = "none";
+  // -----------------------------
+  // Paciente: carregar e render
+  // -----------------------------
+  async function loadPatient() {
+    try {
+      if (!C || typeof C.getPatientById !== "function") {
+        console.error("Cornelius.getPatientById não existe. Verifique supabase-api.js.");
+        toast("❌ API não carregada (getPatientById).");
+        return;
+      }
 
-    tabHistory.classList.remove("primary");
-    tabFinance.classList.remove("primary");
-    tabFinanceSettings.classList.remove("primary");
+      currentPatient = await C.getPatientById(patientId);
 
-    if (which === "history") {
-      panelHistory.style.display = "block";
-      tabHistory.classList.add("primary");
-    } else if (which === "finance") {
-      panelFinance.style.display = "block";
-      tabFinance.classList.add("primary");
-    } else {
-      panelFinanceSettings.style.display = "block";
-      tabFinanceSettings.classList.add("primary");
+      if (!currentPatient) {
+        toast("❌ Paciente não encontrado");
+        setTimeout(() => (window.location.href = "index.html"), 1200);
+        return;
+      }
+
+      renderPatient();
+    } catch (err) {
+      console.error("Erro ao carregar paciente:", err);
+      toast("❌ Erro ao carregar paciente");
     }
   }
 
-  function renderPatientCard(data, p) {
-    title.textContent = p.name;
-    subtitle.textContent = `CPF: ${p.cpf}`;
-    colorDot.style.background = p.color || "#7FDCAC";
+  function renderPatient() {
+    const name = currentPatient?.name || "Paciente";
+    if (elTitle) elTitle.textContent = name;
+    if (elSubtitle) elSubtitle.textContent = "Ficha completa do paciente.";
 
-    patientFields.innerHTML = "";
+    // cor
+    if (colorDot) colorDot.style.background = currentPatient?.color || "#2A9D8F";
 
-    const fields = [
-      ["E-mail", p.email || "-"],
-      ["Telefone", p.phone || "-"],
-      ["Endereço", p.address || "-"]
-    ];
+    // lista de campos
+    if (patientFields) {
+      const items = [
+        { label: "Nome", value: currentPatient?.name || "—" },
+        { label: "CPF", value: currentPatient?.cpf ? (C.formatCPF ? C.formatCPF(currentPatient.cpf) : currentPatient.cpf) : "—" },
+        { label: "E-mail", value: currentPatient?.email || "—" },
+        { label: "Telefone", value: currentPatient?.phone || "—" },
+        { label: "Endereço", value: currentPatient?.address || "—" }
+      ];
 
-    fields.forEach(([k, v]) => {
-      const row = document.createElement("div");
-      row.className = "item";
-      row.innerHTML = `
-        <div class="meta">
-          <strong>${C.escapeHtml(k)}</strong>
-          <span>${C.escapeHtml(v)}</span>
-        </div>
-      `;
-      patientFields.appendChild(row);
-    });
-  }
-
-  function fillProfessionalsSelect(selectEl, data) {
-    const pros = (data.professionals || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-    selectEl.innerHTML = "";
-    pros.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = p.name;
-      selectEl.appendChild(opt);
-    });
-    if (!pros.length) {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "Cadastre profissionais";
-      selectEl.appendChild(opt);
+      patientFields.innerHTML = items
+        .map(
+          (i) => `
+          <div class="item">
+            <div class="meta">
+              <strong>${escapeHtml(i.label)}</strong>
+              <span>${escapeHtml(i.value)}</span>
+            </div>
+          </div>
+        `
+        )
+        .join("");
     }
   }
 
-  function fillAppointmentLinks(selectEl, data, appts) {
-    selectEl.innerHTML = "";
-    const optNone = document.createElement("option");
-    optNone.value = "";
-    optNone.textContent = "Sem vínculo (geral)";
-    selectEl.appendChild(optNone);
+  // -----------------------------
+  // Ações topo
+  // -----------------------------
+safeOn(btnSchedule, "click", () => {
+  const pid = encodeURIComponent(patientId);
+  const pname = encodeURIComponent(currentPatient?.name || "");
+  window.location.href = `agenda.html?new=1&patient=${pid}&patient_name=${pname}`;
+});
 
-    appts.forEach((a) => {
-      const pro = C.getProfessionalById(data, a.professionalId);
-      const label = `${C.humanDateTime(a.start)}${pro ? " — " + pro.name : ""}`;
-      const opt = document.createElement("option");
-      opt.value = a.id;
-      opt.textContent = label;
-      selectEl.appendChild(opt);
-    });
+safeOn(btnGoAgenda, "click", () => {
+  window.location.href = `agenda.html`;
+});
+
+
+
+
+  safeOn(btnEdit, "click", () => openEditPatientModal());
+
+  // -----------------------------
+  // Modal: Editar Paciente
+  // -----------------------------
+  function openEditPatientModal() {
+    if (!currentPatient) return;
+
+    if (eName) eName.value = currentPatient.name || "";
+    if (eCpf) eCpf.value = currentPatient.cpf || "";
+    if (eEmail) eEmail.value = currentPatient.email || "";
+    if (ePhone) ePhone.value = currentPatient.phone || "";
+    if (eAddress) eAddress.value = currentPatient.address || "";
+    if (eColor) eColor.value = currentPatient.color || "#2A9D8F";
+
+    show(editBackdrop);
   }
 
-  // ---------- HISTÓRICO (atendimentos + anotações) ----------
-  function timelineItem(titleText, subtitleText, rightPillHtml, bodyHtml) {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="meta" style="min-width:0;">
-        <strong>${C.escapeHtml(titleText)}</strong>
-        <span>${C.escapeHtml(subtitleText)}</span>
-        ${bodyHtml ? `<div style="margin-top:8px; color: var(--text); font-size: 13px; line-height: 1.35;">${bodyHtml}</div>` : ""}
-      </div>
-      ${rightPillHtml || ""}
-    `;
-    return div;
+  function closeEditPatientModal() {
+    hide(editBackdrop);
   }
 
-  function renderHistory(data) {
-    const appts = C.getAppointmentsByPatient(data, patientId);
-    const notes = C.getNotesByPatient(data, patientId);
+  async function saveEditPatientModal() {
+    try {
+      if (!C || typeof C.updatePatient !== "function") {
+        console.error("Cornelius.updatePatient não existe. Verifique supabase-api.js.");
+        toast("❌ API não carregada (updatePatient).");
+        return;
+      }
 
-    if (!appts.length && !notes.length) {
-      notesList.innerHTML = "";
-      notesEmpty.style.display = "block";
+      const updates = {
+        name: (eName?.value || "").trim(),
+        cpf: (eCpf?.value || "").trim(),
+        email: (eEmail?.value || "").trim(),
+        phone: (ePhone?.value || "").trim(),
+        address: (eAddress?.value || "").trim(),
+        color: eColor?.value || "#2A9D8F"
+      };
+
+      if (!updates.name) {
+        toast("⚠️ Nome é obrigatório");
+        return;
+      }
+
+      await C.updatePatient(patientId, updates);
+      closeEditPatientModal();
+      await loadPatient();
+    } catch (err) {
+      console.error("Erro ao salvar paciente:", err);
+      toast("❌ Erro ao salvar alterações");
+    }
+  }
+
+  safeOn(btnCloseEdit, "click", closeEditPatientModal);
+  safeOn(btnCancelEdit, "click", closeEditPatientModal);
+  safeOn(btnSaveEdit, "click", saveEditPatientModal);
+
+  // -----------------------------
+  // Profissionais e atendimentos (opcionais)
+  // -----------------------------
+  async function fillProfessionals(selectEl) {
+    if (!selectEl) return;
+    selectEl.innerHTML = `<option value="">—</option>`;
+
+    // Tenta funções possíveis, sem quebrar caso não existam
+    const candidates = ["getProfessionals", "listProfessionals", "getAllProfessionals"];
+    const fnName = candidates.find((n) => C && typeof C[n] === "function");
+
+    if (!fnName) return;
+
+    try {
+      const list = await C[fnName]();
+      if (!Array.isArray(list)) return;
+
+      selectEl.innerHTML =
+        `<option value="">—</option>` +
+        list
+          .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || "Profissional")}</option>`)
+          .join("");
+    } catch (e) {
+      console.warn("Não foi possível carregar profissionais:", e);
+    }
+  }
+
+  async function fillAppointments(selectEl) {
+    if (!selectEl) return;
+
+    // mantém sempre opção "Nenhum"
+    selectEl.innerHTML = `<option value="">Nenhum</option>`;
+
+    const candidates = ["getAppointmentsByPatient", "listAppointmentsByPatient", "getAppointmentsForPatient"];
+    const fnName = candidates.find((n) => C && typeof C[n] === "function");
+    if (!fnName) return;
+
+    try {
+      const list = await C[fnName](patientId);
+      if (!Array.isArray(list) || !list.length) return;
+
+      list.forEach((a) => {
+        const when = a.start_time || a.date || a.when || a.created_at;
+        const label = when ? new Date(when).toLocaleString("pt-BR") : "Atendimento";
+        const opt = document.createElement("option");
+        opt.value = a.id;
+        opt.textContent = label;
+        selectEl.appendChild(opt);
+      });
+    } catch (e) {
+      console.warn("Não foi possível carregar atendimentos:", e);
+    }
+  }
+
+  // -----------------------------
+// AGENDAMENTOS (na ficha do paciente)
+// -----------------------------
+async function loadPatientAppointments() {
+  try {
+    const candidates = ["getAppointmentsByPatient", "listAppointmentsByPatient", "getAppointmentsForPatient"];
+    const fnName = candidates.find((n) => C && typeof C[n] === "function");
+
+    if (!fnName) {
+      console.error("Nenhuma função de agendamentos disponível no supabase-api.js");
+      renderApptList(apptsUpcomingList, apptsUpcomingEmpty, [], true);
+      renderApptList(apptsPastList, apptsPastEmpty, [], false);
       return;
     }
-    notesEmpty.style.display = "none";
-    notesList.innerHTML = "";
 
-    const events = [];
-    appts.forEach(a => events.push({ kind: "appt", when: a.start, data: a }));
-    notes.forEach(n => events.push({ kind: "note", when: n.createdAt, data: n }));
-    events.sort((x, y) => new Date(y.when) - new Date(x.when));
+    const list = await C[fnName](patientId);
+    const now = Date.now();
 
-    events.forEach((ev) => {
-      if (ev.kind === "appt") {
-        const a = ev.data;
-        const pro = C.getProfessionalById(data, a.professionalId);
-        const right = pro
-          ? `<span class="pill"><span class="dot" style="background:${pro.color || "#7FDCAC"}"></span>${C.escapeHtml(pro.name)}</span>`
-          : `<span class="pill"><span class="dot"></span>Sem profissional</span>`;
+    const upcoming = [];
+    const past = [];
 
-        notesList.appendChild(
-          timelineItem(
-            "Atendimento agendado",
-            C.humanDateTime(a.start),
-            right,
-            a.notes ? C.escapeHtml(a.notes) : ""
-          )
-        );
-      } else {
-        const n = ev.data;
-        const pro = C.getProfessionalById(data, n.professionalId);
-        const right = pro
-          ? `<span class="pill"><span class="dot" style="background:${pro.color || "#7FDCAC"}"></span>${C.escapeHtml(pro.name)}</span>`
-          : `<span class="pill"><span class="dot"></span>Anotação</span>`;
-
-        const vinculo = n.appointmentId ? "Vinculada a um atendimento" : "Geral";
-        const sub = `${C.humanDateTime(n.createdAt)} • ${vinculo}`;
-
-        const item = timelineItem("Anotação", sub, right, C.escapeHtml(n.text || ""));
-        item.style.cursor = "pointer";
-        item.title = "Clique para editar";
-        item.addEventListener("click", () => openNoteModalForEdit(data, n));
-        notesList.appendChild(item);
-      }
+    (list || []).forEach((a) => {
+      const start = new Date(a.start_time).getTime();
+      if (!isNaN(start) && start >= now) upcoming.push(a);
+      else past.push(a);
     });
+
+    // Próximos: mais próximo primeiro
+    upcoming.sort((x, y) => new Date(x.start_time) - new Date(y.start_time));
+    // Passados: mais recente primeiro
+    past.sort((x, y) => new Date(y.start_time) - new Date(x.start_time));
+
+    renderApptList(apptsUpcomingList, apptsUpcomingEmpty, upcoming, true);
+    renderApptList(apptsPastList, apptsPastEmpty, past, false);
+  } catch (err) {
+    console.error("Erro ao carregar agendamentos do paciente:", err);
+    toast("❌ Erro ao carregar agendamentos");
+  }
+}
+
+function renderApptList(listEl, emptyEl, items, isUpcoming) {
+  if (!listEl || !emptyEl) return;
+
+  if (!items || !items.length) {
+    listEl.innerHTML = "";
+    emptyEl.style.display = "block";
+    return;
   }
 
-  function openNoteModalForNew(data) {
-    editingNoteId = null;
-    btnDeleteNote.style.display = "none";
+  emptyEl.style.display = "none";
 
-    const appts = C.getAppointmentsByPatient(data, patientId);
-    fillProfessionalsSelect(noteProfessional, data);
-    fillAppointmentLinks(noteLinkAppt, data, appts);
+  listEl.innerHTML = items
+    .map((a) => {
+      const start = new Date(a.start_time);
+      const end = new Date(a.end_time);
 
-    noteWhen.value = C.toLocalInputValue(new Date().toISOString()).slice(0, 16);
-    noteText.value = "";
-    noteLinkAppt.value = "";
-    noteProfessional.value = (data.professionals?.[0]?.id || "");
+      const when = start.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+      const to = end.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-    open(noteBackdrop);
-  }
+      const profName =
+        a.professional?.name ||
+        a.professional_name ||
+        "—";
 
-  function openNoteModalForEdit(data, note) {
-    editingNoteId = note.id;
-    btnDeleteNote.style.display = "inline-flex";
+      const room = a.room ? `Sala: ${escapeHtml(a.room)}` : "";
+      const notes = a.notes ? escapeHtml(a.notes) : "";
+      const color = a.color || "#2A9D8F";
 
-    const appts = C.getAppointmentsByPatient(data, patientId);
-    fillProfessionalsSelect(noteProfessional, data);
-    fillAppointmentLinks(noteLinkAppt, data, appts);
+      return `
+        <div class="item" style="align-items:flex-start;">
+          <div class="meta">
+            <strong>${escapeHtml(when)} – ${escapeHtml(to)}</strong>
+            <span class="muted">${escapeHtml(profName)}${room ? " • " + room : ""}</span>
+            ${notes ? `<div class="text-sm" style="margin-top:6px; white-space:pre-wrap;">${notes}</div>` : ""}
+          </div>
 
-    noteWhen.value = C.toLocalInputValue(note.createdAt).slice(0, 16);
-    noteText.value = note.text || "";
-    noteProfessional.value = note.professionalId || (data.professionals?.[0]?.id || "");
-    noteLinkAppt.value = note.appointmentId || "";
-
-    open(noteBackdrop);
-  }
-
-  function closeNoteModal() {
-    close(noteBackdrop);
-    editingNoteId = null;
-    btnDeleteNote.style.display = "none";
-  }
-
-  // ---------- FINANCEIRO ----------
-  function statusLabel(s) {
-    const map = { PAID:"Pago", PENDING:"Pendente", PARTIAL:"Parcial", FREE:"Isento" };
-    return map[s] || s;
-  }
-
-  function methodLabel(m) {
-    const map = { PIX:"Pix", CARD:"Cartão", CASH:"Dinheiro", TRANSFER:"Transferência", OTHER:"Outros" };
-    return map[m] || m;
-  }
-
-  function cardTypeLabel(t) {
-    return t === "DEBIT" ? "Débito" : "Crédito";
-  }
-
-  function cardBrandLabel(b) {
-    const map = { VISA:"Visa", MASTERCARD:"Mastercard", ELO:"Elo", AMEX:"Amex", HIPERCARD:"Hipercard", OTHER:"Outros" };
-    return map[b] || b;
-  }
-
-  function renderFinance(data, patient) {
-    const summary = C.calcFinancialSummary(data, patient);
-    sumConsultation.textContent = C.moneyBR(summary.consultationValue);
-    sumPaid.textContent = C.moneyBR(summary.totalPaid);
-    sumPending.textContent = `${summary.pendingCount} pendente(s)`;
-
-    const payments = C.getPaymentsByPatient(data, patientId);
-    paymentsList.innerHTML = "";
-    paymentsEmpty.style.display = payments.length ? "none" : "block";
-
-    payments.forEach((p) => {
-      const pro = C.getProfessionalById(data, p.professionalId);
-      const right = pro
-        ? `<span class="pill"><span class="dot" style="background:${pro.color || "#7FDCAC"}"></span>${C.escapeHtml(pro.name)}</span>`
-        : `<span class="pill"><span class="dot"></span>Pagamento</span>`;
-
-      const titleText = `${C.moneyBR(p.amount)} • ${statusLabel(p.status)} • ${methodLabel(p.method)}`;
-      const subtitleText = `${C.humanDateTime(p.paidAt)}${p.appointmentId ? " • Vinculado a atendimento" : ""}`;
-
-      let extra = "";
-      if (p.method === "CARD" && p.card) {
-        const inst = Number(p.card.installments || 1);
-        const per = inst > 0 ? (Number(p.amount || 0) / inst) : Number(p.amount || 0);
-        const fee = Number(p.card.feePercent || 0);
-        const net = Number(p.amount || 0) * (1 - fee / 100);
-
-        extra += `<div style="margin-top:8px; font-size:13px; line-height:1.35;">` +
-          `${C.escapeHtml(cardTypeLabel(p.card.type))} • ${C.escapeHtml(cardBrandLabel(p.card.brand))} • ` +
-          `${C.escapeHtml(String(inst))}x de ${C.escapeHtml(C.moneyBR(per))}` +
-          `</div>`;
-
-        const parts = [];
-        if (fee > 0) parts.push(`Taxa ${fee.toFixed(2)}%`);
-        if (fee > 0) parts.push(`Líquido ${C.moneyBR(net)}`);
-        if (p.card.authorization) parts.push(`NSU ${p.card.authorization}`);
-
-        if (parts.length) {
-          extra += `<div style="margin-top:6px; font-size:12.5px; opacity:.9;">${C.escapeHtml(parts.join(" • "))}</div>`;
-        }
-      }
-
-      if (p.note) {
-        extra += `<div style="margin-top:8px; font-size:13px; line-height:1.35;">${C.escapeHtml(p.note)}</div>`;
-      }
-
-      const item = document.createElement("div");
-      item.className = "item";
-      item.innerHTML = `
-        <div class="meta" style="min-width:0;">
-          <strong>${C.escapeHtml(titleText)}</strong>
-          <span>${C.escapeHtml(subtitleText)}</span>
-          ${extra}
+          <div style="min-width:120px; text-align:right;">
+            <span class="pill" style="display:inline-flex; gap:8px; align-items:center;">
+              <span class="dot" style="width:10px;height:10px;border-radius:999px;background:${escapeHtml(color)};"></span>
+              ${isUpcoming ? "Futuro" : "Passado"}
+            </span>
+          </div>
         </div>
-        ${right}
       `;
+    })
+    .join("");
+}
 
-      item.style.cursor = "pointer";
-      item.title = "Clique para editar";
-      item.addEventListener("click", () => openPayModalForEdit(C.load(), p, C.getPatientById(C.load(), patientId)));
+  // -----------------------------
+  // HISTÓRICO (Anotações)
+  // -----------------------------
+  async function loadNotes() {
+    try {
+      if (!C || typeof C.getClinicalNotesByPatient !== "function") {
+        console.error("Cornelius.getClinicalNotesByPatient não existe.");
+        if (notesList) notesList.innerHTML = "";
+        if (notesEmpty) notesEmpty.style.display = "block";
+        return;
+      }
 
-      paymentsList.appendChild(item);
-    });
+      const notes = await C.getClinicalNotesByPatient(patientId);
+
+      if (!notes || !notes.length) {
+        if (notesList) notesList.innerHTML = "";
+        if (notesList) notesList.style.display = "none";
+        if (notesEmpty) notesEmpty.style.display = "block";
+        return;
+      }
+
+      if (notesEmpty) notesEmpty.style.display = "none";
+      if (notesList) notesList.style.display = "block";
+
+      notesList.innerHTML = notes
+        .map((n) => {
+          const d = n.note_date ? new Date(n.note_date) : null;
+          const dateStr = d ? d.toLocaleDateString("pt-BR") : "—";
+          const timeStr = d ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+          const profName = n.professional?.name || n.professional_name || "Profissional";
+          const text = n.content || "";
+          const preview = text.length > 160 ? text.slice(0, 160) + "..." : text;
+
+          return `
+            <div class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">📝 ${escapeHtml(profName)}</div>
+                <div class="text-sm text-secondary">${escapeHtml(dateStr)} ${timeStr ? "às " + escapeHtml(timeStr) : ""}</div>
+                <div class="text-sm" style="margin-top:8px; white-space:pre-wrap;">${escapeHtml(preview)}</div>
+              </div>
+              <button class="btn-icon" data-action="edit-note" data-id="${escapeHtml(n.id)}" title="Editar">✏️</button>
+            </div>
+          `;
+        })
+        .join("");
+
+      notesList.querySelectorAll('[data-action="edit-note"]').forEach((btn) => {
+        safeOn(btn, "click", () => openEditNote(btn.dataset.id));
+      });
+    } catch (err) {
+      console.error("Erro ao carregar anotações:", err);
+      toast("❌ Erro ao carregar histórico");
+    }
   }
 
-  // ---------- UI Cartão ----------
-  function fillInstallmentsOptions() {
-    cardInstallments.innerHTML = "";
+  function openNewNote() {
+    editingNoteId = null;
+
+    if (noteText) noteText.value = "";
+    if (noteWhen) noteWhen.value = fmtDateTimeLocal(new Date().toISOString());
+
+    if (btnDeleteNote) btnDeleteNote.style.display = "none";
+
+    fillProfessionals(noteProfessional);
+    fillAppointments(noteLinkAppt);
+
+    show(noteBackdrop);
+  }
+
+  async function openEditNote(noteId) {
+    try {
+      if (!C || typeof C.getClinicalNotesByPatient !== "function") return;
+
+      const notes = await C.getClinicalNotesByPatient(patientId);
+      const note = notes?.find((n) => String(n.id) === String(noteId));
+
+      if (!note) {
+        toast("❌ Anotação não encontrada");
+        return;
+      }
+
+      editingNoteId = noteId;
+
+      fillProfessionals(noteProfessional);
+      fillAppointments(noteLinkAppt);
+
+      // tenta setar valores existentes
+      if (noteProfessional && note.professional_id) noteProfessional.value = note.professional_id;
+      if (noteLinkAppt && note.appointment_id) noteLinkAppt.value = note.appointment_id;
+
+      if (noteWhen) noteWhen.value = fmtDateTimeLocal(note.note_date);
+      if (noteText) noteText.value = note.content || "";
+
+      if (btnDeleteNote) btnDeleteNote.style.display = "inline-flex";
+
+      show(noteBackdrop);
+    } catch (err) {
+      console.error("Erro ao abrir anotação:", err);
+      toast("❌ Erro ao abrir anotação");
+    }
+  }
+
+  function closeNote() {
+    hide(noteBackdrop);
+    editingNoteId = null;
+  }
+
+  async function saveNote() {
+    try {
+      const content = (noteText?.value || "").trim();
+      if (!content) {
+        toast("⚠️ Preencha a anotação");
+        return;
+      }
+
+      const payload = {
+        patient_id: patientId,
+        professional_id: noteProfessional?.value || null,
+        appointment_id: noteLinkAppt?.value || null,
+        note_date: parseDateTimeLocal(noteWhen?.value) || new Date().toISOString(),
+        content
+      };
+
+      if (editingNoteId) {
+        if (!C || typeof C.updateClinicalNote !== "function") {
+          console.error("Cornelius.updateClinicalNote não existe.");
+          toast("❌ API não carregada (updateClinicalNote).");
+          return;
+        }
+        await C.updateClinicalNote(editingNoteId, payload);
+      } else {
+        if (!C || typeof C.addClinicalNote !== "function") {
+          console.error("Cornelius.addClinicalNote não existe.");
+          toast("❌ API não carregada (addClinicalNote).");
+          return;
+        }
+        await C.addClinicalNote(payload);
+      }
+
+      closeNote();
+      await loadNotes();
+    } catch (err) {
+      console.error("Erro ao salvar anotação:", err);
+      toast("❌ Erro ao salvar anotação");
+    }
+  }
+
+  async function deleteNote() {
+    try {
+      if (!editingNoteId) return;
+      if (!confirm("⚠️ Tem certeza que deseja excluir esta anotação?")) return;
+
+      if (!C || typeof C.deleteClinicalNote !== "function") {
+        console.error("Cornelius.deleteClinicalNote não existe.");
+        toast("❌ API não carregada (deleteClinicalNote).");
+        return;
+      }
+
+      await C.deleteClinicalNote(editingNoteId);
+      closeNote();
+      await loadNotes();
+    } catch (err) {
+      console.error("Erro ao excluir anotação:", err);
+      toast("❌ Erro ao excluir anotação");
+    }
+  }
+
+  safeOn(btnAddNote, "click", openNewNote);
+  safeOn(btnCloseNote, "click", closeNote);
+  safeOn(btnCancelNote, "click", closeNote);
+  safeOn(btnSaveNote, "click", saveNote);
+  safeOn(btnDeleteNote, "click", deleteNote);
+
+  // -----------------------------
+  // FINANCEIRO (Pagamentos + resumo)
+  // -----------------------------
+  function ensureCardInstallmentsOptions() {
+    if (!cardInstallments) return;
+    if (cardInstallments.options.length) return;
+
     for (let i = 1; i <= 12; i++) {
       const opt = document.createElement("option");
       opt.value = String(i);
       opt.textContent = `${i}x`;
       cardInstallments.appendChild(opt);
     }
+    cardInstallments.value = "1";
   }
 
-  function recalcCard() {
-    const amount = Number(payAmount.value || 0);
-    let inst = Number(cardInstallments.value || 1);
-    if (!isFinite(inst) || inst < 1) inst = 1;
-    if (inst > 12) inst = 12;
+  function updateCardDerivedUI() {
+    if (!cardBox) return;
 
-    const isDebit = cardType.value === "DEBIT";
-    if (isDebit) inst = 1;
+    const method = payMethod?.value || "";
+    cardBox.style.display = method === "CARD" ? "block" : "none";
+    if (method !== "CARD") return;
 
-    cardInstallments.value = String(inst);
-    cardInstallments.disabled = isDebit;
+    ensureCardInstallmentsOptions();
+
+    const amount = parseFloat(payAmount?.value || "0") || 0;
+    const inst = parseInt(cardInstallments?.value || "1", 10) || 1;
+    const fee = parseFloat(cardFee?.value || "0") || 0;
 
     const per = inst > 0 ? amount / inst : amount;
-    cardInstallmentValue.value = C.moneyBR(per);
+    if (cardInstallmentValue) cardInstallmentValue.value = isFinite(per) ? per.toFixed(2) : "";
 
-    let fee = Number(cardFee.value || 0);
-    if (!isFinite(fee) || fee < 0) fee = 0;
-    if (fee > 100) fee = 100;
-
-    const net = amount * (1 - fee / 100);
-
-    const parts = [];
-    parts.push(`${cardTypeLabel(cardType.value)} • ${cardBrandLabel(cardBrand.value)} • ${inst}x de ${C.moneyBR(per)}`);
-    if (fee > 0) parts.push(`Taxa ${fee.toFixed(2)}% • Líquido ${C.moneyBR(net)}`);
-    if ((cardAuthorization.value || "").trim()) parts.push(`NSU ${String(cardAuthorization.value).trim()}`);
-
-    cardNetInfo.textContent = parts.join(" • ");
+    const net = amount > 0 ? amount * (1 - fee / 100) : 0;
+    if (cardNetInfo) {
+      cardNetInfo.innerHTML =
+        amount > 0
+          ? `💡 <strong>Estimativa líquido:</strong> R$ ${net.toFixed(2)} (taxa ${fee.toFixed(2)}%)`
+          : `💡 Informe o valor para ver a estimativa líquido.`;
+    }
   }
 
-  function syncCardUI() {
-    const isCard = payMethod.value === "CARD";
-    cardBox.style.display = isCard ? "block" : "none";
-    if (!isCard) return;
-    recalcCard();
+  async function loadPaymentsAndSummary() {
+    try {
+      // resumo
+      if (C && typeof C.calcFinancialSummary === "function") {
+        const summary = await C.calcFinancialSummary(patientId);
+
+        // Se sua API retornar { total, paid, pending } isso preenche.
+        // Se não retornar, mantém "-"
+        if (sumPaid) sumPaid.textContent = summary?.paid != null && C.moneyBR ? C.moneyBR(summary.paid) : (summary?.paid ?? "-");
+        if (sumPending) sumPending.textContent = summary?.pending != null && C.moneyBR ? C.moneyBR(summary.pending) : (summary?.pending ?? "-");
+
+        // "Valor da consulta" vem da config do paciente (se existir) OU deixa "-"
+        const consult = summary?.consultation_value ?? currentPatient?.consultation_value ?? currentPatient?.consultationValue ?? null;
+        if (sumConsultation) sumConsultation.textContent = consult != null && C.moneyBR ? C.moneyBR(consult) : (consult ?? "-");
+      } else {
+        // fallback
+        if (sumConsultation) sumConsultation.textContent = "-";
+        if (sumPaid) sumPaid.textContent = "-";
+        if (sumPending) sumPending.textContent = "-";
+      }
+
+      // lista pagamentos
+      if (!C || typeof C.getPaymentsByPatient !== "function") {
+        console.error("Cornelius.getPaymentsByPatient não existe.");
+        if (paymentsList) paymentsList.innerHTML = "";
+        if (paymentsEmpty) paymentsEmpty.style.display = "block";
+        return;
+      }
+
+      const payments = await C.getPaymentsByPatient(patientId);
+
+      if (!payments || !payments.length) {
+        if (paymentsList) paymentsList.innerHTML = "";
+        if (paymentsList) paymentsList.style.display = "none";
+        if (paymentsEmpty) paymentsEmpty.style.display = "block";
+        return;
+      }
+
+      if (paymentsEmpty) paymentsEmpty.style.display = "none";
+      if (paymentsList) paymentsList.style.display = "block";
+
+      const statusMap = {
+        PAID: { label: "Pago", color: "#06D6A0" },
+        PENDING: { label: "Pendente", color: "#F4A261" },
+        PARTIAL: { label: "Parcial", color: "#457B9D" },
+        FREE: { label: "Isento", color: "#6C757D" }
+      };
+
+      const methodMap = {
+        PIX: "Pix",
+        CARD: "Cartão",
+        CASH: "Dinheiro",
+        TRANSFER: "Transferência",
+        OTHER: "Outro"
+      };
+
+      paymentsList.innerHTML = payments
+        .map((p) => {
+          const d = p.payment_date ? new Date(p.payment_date) : null;
+          const dateStr = d ? d.toLocaleDateString("pt-BR") : "—";
+
+          const st = statusMap[p.status] || statusMap.PENDING;
+          const method = methodMap[p.method] || "—";
+
+          const amountText = C.moneyBR ? C.moneyBR(p.amount || 0) : String(p.amount || 0);
+
+          return `
+            <div class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">
+                  ${escapeHtml(amountText)}
+                  <span class="badge" style="background:${st.color}; color:#fff; margin-left:8px;">${escapeHtml(st.label)}</span>
+                </div>
+                <div class="text-sm text-secondary">📅 ${escapeHtml(dateStr)} • ${escapeHtml(method)}</div>
+                ${p.note ? `<div class="text-sm" style="margin-top:4px;">${escapeHtml(p.note)}</div>` : ""}
+              </div>
+              <button class="btn-icon" data-action="edit-pay" data-id="${escapeHtml(p.id)}" title="Editar">✏️</button>
+            </div>
+          `;
+        })
+        .join("");
+
+      paymentsList.querySelectorAll('[data-action="edit-pay"]').forEach((btn) => {
+        safeOn(btn, "click", () => openEditPayment(btn.dataset.id));
+      });
+    } catch (err) {
+      console.error("Erro ao carregar financeiro:", err);
+      toast("❌ Erro ao carregar financeiro");
+    }
   }
 
-  // ---------- Modal Pagamento ----------
-  function openPayModalForNew(data, patient) {
+  function openNewPayment() {
     editingPayId = null;
-    btnDeletePay.style.display = "none";
 
-    const appts = C.getAppointmentsByPatient(data, patientId);
-    fillProfessionalsSelect(payProfessional, data);
-    fillAppointmentLinks(payLinkAppt, data, appts);
+    fillProfessionals(payProfessional);
+    fillAppointments(payLinkAppt);
 
-    payAmount.value = Number(patient.consultationValue || 0).toFixed(2);
-    payDate.value = C.toLocalInputValue(new Date().toISOString()).slice(0, 16);
-    payStatus.value = "PAID";
-    payMethod.value = "PIX";
-    payNote.value = "";
-
-    payProfessional.value = (data.professionals?.[0]?.id || "");
-    payLinkAppt.value = "";
-
-    // defaults cartão
-    fillInstallmentsOptions();
-    cardType.value = "CREDIT";
-    cardBrand.value = "VISA";
-    cardInstallments.value = "1";
-    cardAuthorization.value = "";
-    cardFee.value = "";
-
-    syncCardUI();
-
-    open(payBackdrop);
-  }
-
-  function openPayModalForEdit(data, pay, patient) {
-    editingPayId = pay.id;
-    btnDeletePay.style.display = "inline-flex";
-
-    const appts = C.getAppointmentsByPatient(data, patientId);
-    fillProfessionalsSelect(payProfessional, data);
-    fillAppointmentLinks(payLinkAppt, data, appts);
-
-    payAmount.value = Number(pay.amount || 0).toFixed(2);
-    payDate.value = C.toLocalInputValue(pay.paidAt).slice(0, 16);
-    payStatus.value = pay.status || "PAID";
-    payMethod.value = pay.method || "PIX";
-    payNote.value = pay.note || "";
-    payProfessional.value = pay.professionalId || (data.professionals?.[0]?.id || "");
-    payLinkAppt.value = pay.appointmentId || "";
-
-    fillInstallmentsOptions();
-
-    const card = pay.card || null;
-    if (payMethod.value === "CARD") {
-      cardType.value = (card && card.type) ? card.type : "CREDIT";
-      cardBrand.value = (card && card.brand) ? card.brand : "VISA";
-      cardInstallments.value = String((card && card.installments) ? card.installments : 1);
-      cardAuthorization.value = (card && card.authorization) ? card.authorization : "";
-      cardFee.value = (card && typeof card.feePercent === "number" && card.feePercent > 0) ? String(card.feePercent) : "";
-    } else {
-      cardType.value = "CREDIT";
-      cardBrand.value = "VISA";
-      cardInstallments.value = "1";
-      cardAuthorization.value = "";
-      cardFee.value = "";
+    if (payAmount) {
+      // pré-preenche com config se existir
+      const consult = currentPatient?.consultation_value ?? currentPatient?.consultationValue ?? null;
+      payAmount.value = consult != null ? String(consult) : "";
     }
 
-    syncCardUI();
-    open(payBackdrop);
+    if (payDate) payDate.value = fmtDateTimeLocal(new Date().toISOString());
+    if (payStatus) payStatus.value = "PENDING";
+    if (payMethod) payMethod.value = "PIX";
+    if (payNote) payNote.value = "";
+
+    if (btnDeletePay) btnDeletePay.style.display = "none";
+
+    // cartão default
+    if (cardType) cardType.value = "CREDIT";
+    if (cardBrand) cardBrand.value = "VISA";
+    if (cardAuthorization) cardAuthorization.value = "";
+    if (cardFee) cardFee.value = "";
+
+    ensureCardInstallmentsOptions();
+    if (cardInstallments) cardInstallments.value = "1";
+
+    updateCardDerivedUI();
+    show(payBackdrop);
   }
 
-  function closePayModal() {
-    close(payBackdrop);
+  async function openEditPayment(paymentId) {
+    try {
+      if (!C || typeof C.getPaymentsByPatient !== "function") return;
+
+      const payments = await C.getPaymentsByPatient(patientId);
+      const p = payments?.find((x) => String(x.id) === String(paymentId));
+
+      if (!p) {
+        toast("❌ Pagamento não encontrado");
+        return;
+      }
+
+      editingPayId = paymentId;
+
+      fillProfessionals(payProfessional);
+      fillAppointments(payLinkAppt);
+
+      if (payProfessional && p.professional_id) payProfessional.value = p.professional_id;
+      if (payLinkAppt && p.appointment_id) payLinkAppt.value = p.appointment_id;
+
+      if (payAmount) payAmount.value = p.amount != null ? String(p.amount) : "";
+      if (payDate) payDate.value = fmtDateTimeLocal(p.payment_date);
+      if (payStatus) payStatus.value = p.status || "PENDING";
+      if (payMethod) payMethod.value = p.method || "PIX";
+      if (payNote) payNote.value = p.note || "";
+
+      if (btnDeletePay) btnDeletePay.style.display = "inline-flex";
+
+      updateCardDerivedUI();
+      show(payBackdrop);
+    } catch (err) {
+      console.error("Erro ao abrir pagamento:", err);
+      toast("❌ Erro ao abrir pagamento");
+    }
+  }
+
+  function closePayment() {
+    hide(payBackdrop);
     editingPayId = null;
-    btnDeletePay.style.display = "none";
   }
 
-  // ---------- CONFIG FINANCEIRA ----------
-  function renderFinanceSettings(patient) {
-    cfgConsultationValue.value = Number(patient.consultationValue || 0).toFixed(2);
-    cfgFinancialNote.value = patient.financialNote || "";
-  }
+  async function savePayment() {
+    try {
+      const amount = parseFloat(payAmount?.value || "0");
+      if (!amount || amount <= 0) {
+        toast("⚠️ Informe um valor válido");
+        return;
+      }
 
-  // ---------- NOTA modal ----------
-  function openNoteModalForEdit(data, note) {
-    editingNoteId = note.id;
-    btnDeleteNote.style.display = "inline-flex";
+      const isoDate = parseDateTimeLocal(payDate?.value);
+      if (!isoDate) {
+        toast("⚠️ Informe a data/hora");
+        return;
+      }
 
-    const appts = C.getAppointmentsByPatient(data, patientId);
-    fillProfessionalsSelect(noteProfessional, data);
-    fillAppointmentLinks(noteLinkAppt, data, appts);
+      const status = payStatus?.value || "PENDING";
+      const method = payMethod?.value || "PIX";
+      let note = (payNote?.value || "").trim();
 
-    noteWhen.value = C.toLocalInputValue(note.createdAt).slice(0, 16);
-    noteText.value = note.text || "";
-    noteProfessional.value = note.professionalId || (data.professionals?.[0]?.id || "");
-    noteLinkAppt.value = note.appointmentId || "";
+      // Se cartão, adiciona um resumo no note (para não depender de colunas extras)
+      if (method === "CARD") {
+        const inst = cardInstallments?.value || "1";
+        const fee = cardFee?.value || "";
+        const auth = cardAuthorization?.value || "";
+        const extra = `Cartão: ${cardBrand?.value || ""} ${cardType?.value || ""} • ${inst}x • taxa ${fee || "0"}% • NSU ${auth || "—"}`;
+        note = note ? `${note}\n${extra}` : extra;
+      }
 
-    open(noteBackdrop);
-  }
+      const payload = {
+        patient_id: patientId,
+        professional_id: payProfessional?.value || null,
+        appointment_id: payLinkAppt?.value || null,
+        amount,
+        payment_date: isoDate,
+        status,
+        method,
+        note
+      };
 
-  function closeNoteModal() {
-    close(noteBackdrop);
-    editingNoteId = null;
-    btnDeleteNote.style.display = "none";
-  }
+      if (editingPayId) {
+        if (!C || typeof C.updatePayment !== "function") {
+          console.error("Cornelius.updatePayment não existe.");
+          toast("❌ API não carregada (updatePayment).");
+          return;
+        }
+        await C.updatePayment(editingPayId, payload);
+      } else {
+        if (!C || typeof C.addPayment !== "function") {
+          console.error("Cornelius.addPayment não existe.");
+          toast("❌ API não carregada (addPayment).");
+          return;
+        }
+        await C.addPayment(payload);
+      }
 
-  // ---------- EDIT PATIENT ----------
-  function openEditModal(p) {
-    eName.value = p.name || "";
-    eCpf.value = p.cpf || "";
-    eColor.value = p.color || "#7FDCAC";
-    eEmail.value = p.email || "";
-    ePhone.value = p.phone || "";
-    eAddress.value = p.address || "";
-    open(editBackdrop);
-  }
-  function closeEditModal() { close(editBackdrop); }
-
-  // ---------- INIT ----------
-  function init() {
-    patientId = qs("id");
-    if (!patientId) {
-      C.toast("Paciente inválido", "Faltou o parâmetro ?id=");
-      return;
+      closePayment();
+      await loadPaymentsAndSummary();
+    } catch (err) {
+      console.error("Erro ao salvar pagamento:", err);
+      toast("❌ Erro ao salvar pagamento");
     }
+  }
 
-    const data = C.load();
-    const patient = C.getPatientById(data, patientId);
-    if (!patient) {
-      C.toast("Paciente não encontrado");
-      return;
-    }
-
-    // Default tab
-    setTab("history");
-
-    // Render base
-    renderPatientCard(data, patient);
-    renderHistory(data);
-    renderFinance(data, patient);
-    renderFinanceSettings(patient);
-
-    // Tab handlers
-    tabHistory.addEventListener("click", () => setTab("history"));
-    tabFinance.addEventListener("click", () => setTab("finance"));
-    tabFinanceSettings.addEventListener("click", () => setTab("settings"));
-
-    // Patient actions
-    btnSchedule.addEventListener("click", () => {
-      window.location.href = `agenda.html?patient=${encodeURIComponent(patientId)}`;
-    });
-    btnEdit.addEventListener("click", () => openEditModal(patient));
-
-    // Notes
-    btnAddNote.addEventListener("click", () => {
-      const fresh = C.load();
-      editingNoteId = null;
-      btnDeleteNote.style.display = "none";
-
-      const appts = C.getAppointmentsByPatient(fresh, patientId);
-      fillProfessionalsSelect(noteProfessional, fresh);
-      fillAppointmentLinks(noteLinkAppt, fresh, appts);
-
-      noteWhen.value = C.toLocalInputValue(new Date().toISOString()).slice(0, 16);
-      noteText.value = "";
-      noteLinkAppt.value = "";
-      noteProfessional.value = (fresh.professionals?.[0]?.id || "");
-      open(noteBackdrop);
-    });
-
-    btnCloseNote.addEventListener("click", closeNoteModal);
-    btnCancelNote.addEventListener("click", closeNoteModal);
-    noteBackdrop.addEventListener("click", (e) => { if (e.target === noteBackdrop) closeNoteModal(); });
-
-    btnSaveNote.addEventListener("click", () => {
-      try {
-        const fresh = C.load();
-        const createdAt = C.fromLocalInputValue(noteWhen.value);
-        const text = (noteText.value || "").trim();
-        if (!text) throw new Error("A anotação não pode ficar vazia.");
-
-        const payload = {
-          patientId,
-          appointmentId: noteLinkAppt.value || null,
-          professionalId: noteProfessional.value || null,
-          createdAt,
-          text
-        };
-
-        if (editingNoteId) {
-          C.updateNote(fresh, editingNoteId, payload);
-          C.toast("Anotação atualizada");
-        } else {
-          C.addNote(fresh, payload);
-          C.toast("Anotação criada");
-        }
-
-        C.save(fresh);
-        closeNoteModal();
-        renderHistory(C.load());
-      } catch (err) {
-        C.toast("Erro", err.message || String(err));
-      }
-    });
-
-    btnDeleteNote.addEventListener("click", () => {
-      if (!editingNoteId) return;
-      if (!confirm("Excluir esta anotação?")) return;
-
-      const fresh = C.load();
-      C.deleteNote(fresh, editingNoteId);
-      C.save(fresh);
-
-      C.toast("Anotação excluída");
-      closeNoteModal();
-      renderHistory(C.load());
-    });
-
-    // Payments
-    btnAddPayment.addEventListener("click", () => openPayModalForNew(C.load(), C.getPatientById(C.load(), patientId)));
-    btnClosePay.addEventListener("click", closePayModal);
-    btnCancelPay.addEventListener("click", closePayModal);
-    payBackdrop.addEventListener("click", (e) => { if (e.target === payBackdrop) closePayModal(); });
-
-    // NOVO: listeners cartão
-    payMethod.addEventListener("change", () => {
-      // se trocar de cartão pra outro método, limpa card
-      if (payMethod.value !== "CARD") {
-        cardAuthorization.value = "";
-        cardFee.value = "";
-        cardInstallments.value = "1";
-      }
-      syncCardUI();
-    });
-    payAmount.addEventListener("input", () => syncCardUI());
-    cardType.addEventListener("change", () => syncCardUI());
-    cardBrand.addEventListener("change", () => syncCardUI());
-    cardInstallments.addEventListener("change", () => syncCardUI());
-    cardFee.addEventListener("input", () => syncCardUI());
-    cardAuthorization.addEventListener("input", () => syncCardUI());
-
-    btnSavePay.addEventListener("click", () => {
-      try {
-        const fresh = C.load();
-        const patientNow = C.getPatientById(fresh, patientId);
-
-        const amount = Number(payAmount.value);
-        if (!isFinite(amount) || amount < 0) throw new Error("Valor inválido.");
-        const paidAt = C.fromLocalInputValue(payDate.value);
-
-        const method = payMethod.value;
-
-        const payload = {
-          patientId,
-          appointmentId: payLinkAppt.value || null,
-          professionalId: payProfessional.value || null,
-          amount,
-          status: payStatus.value,
-          method,
-          paidAt,
-          note: payNote.value,
-          card: null
-        };
-
-        if (method === "CARD") {
-          let inst = Number(cardInstallments.value || 1);
-          if (!isFinite(inst) || inst < 1) inst = 1;
-          if (inst > 12) inst = 12;
-
-          const isDebit = cardType.value === "DEBIT";
-          if (isDebit) inst = 1;
-
-          let fee = Number(cardFee.value || 0);
-          if (!isFinite(fee) || fee < 0) fee = 0;
-          if (fee > 100) fee = 100;
-
-          payload.card = {
-            type: cardType.value,
-            brand: cardBrand.value,
-            installments: inst,
-            authorization: String(cardAuthorization.value || "").trim(),
-            feePercent: fee
-          };
-        }
-
-        if (editingPayId) {
-          C.updatePayment(fresh, editingPayId, payload);
-          C.toast("Pagamento atualizado");
-        } else {
-          C.addPayment(fresh, payload);
-          C.toast("Pagamento registrado");
-        }
-
-        C.save(fresh);
-        closePayModal();
-
-        const after = C.load();
-        const patientAfter = C.getPatientById(after, patientId);
-        renderFinance(after, patientAfter);
-      } catch (err) {
-        C.toast("Erro", err.message || String(err));
-      }
-    });
-
-    btnDeletePay.addEventListener("click", () => {
+  async function deletePayment() {
+    try {
       if (!editingPayId) return;
-      if (!confirm("Excluir este pagamento?")) return;
+      if (!confirm("⚠️ Tem certeza que deseja excluir este pagamento?")) return;
 
-      const fresh = C.load();
-      C.deletePayment(fresh, editingPayId);
-      C.save(fresh);
-
-      C.toast("Pagamento excluído");
-      closePayModal();
-
-      const after = C.load();
-      const patientAfter = C.getPatientById(after, patientId);
-      renderFinance(after, patientAfter);
-    });
-
-    // Finance settings save
-    btnSaveFinanceSettings.addEventListener("click", () => {
-      try {
-        const fresh = C.load();
-        const v = Number(cfgConsultationValue.value || 0);
-        if (!isFinite(v) || v < 0) throw new Error("Valor da consulta inválido.");
-
-        C.updatePatient(fresh, patientId, {
-          consultationValue: v,
-          financialNote: cfgFinancialNote.value
-        });
-        C.save(fresh);
-
-        C.toast("Configuração financeira salva");
-
-        const after = C.load();
-        const patientNow = C.getPatientById(after, patientId);
-
-        renderFinance(after, patientNow);
-        renderFinanceSettings(patientNow);
-      } catch (err) {
-        C.toast("Erro", err.message || String(err));
+      if (!C || typeof C.deletePayment !== "function") {
+        console.error("Cornelius.deletePayment não existe.");
+        toast("❌ API não carregada (deletePayment).");
+        return;
       }
-    });
 
-    // Edit patient modal
-    btnCloseEdit.addEventListener("click", closeEditModal);
-    btnCancelEdit.addEventListener("click", closeEditModal);
-    editBackdrop.addEventListener("click", (e) => { if (e.target === editBackdrop) closeEditModal(); });
-
-    btnSaveEdit.addEventListener("click", () => {
-      try {
-        const fresh = C.load();
-        C.updatePatient(fresh, patientId, {
-          name: eName.value,
-          cpf: eCpf.value,
-          color: eColor.value,
-          email: eEmail.value,
-          phone: ePhone.value,
-          address: eAddress.value
-        });
-        C.save(fresh);
-
-        C.toast("Paciente atualizado");
-        closeEditModal();
-
-        const after = C.load();
-        const patientNow = C.getPatientById(after, patientId);
-        renderPatientCard(after, patientNow);
-        renderFinance(after, patientNow);
-        renderFinanceSettings(patientNow);
-      } catch (err) {
-        C.toast("Erro ao salvar", err.message || String(err));
-      }
-    });
+      await C.deletePayment(editingPayId);
+      closePayment();
+      await loadPaymentsAndSummary();
+    } catch (err) {
+      console.error("Erro ao excluir pagamento:", err);
+      toast("❌ Erro ao excluir pagamento");
+    }
   }
 
-  init();
+  safeOn(btnAddPayment, "click", openNewPayment);
+  safeOn(btnClosePay, "click", closePayment);
+  safeOn(btnCancelPay, "click", closePayment);
+  safeOn(btnSavePay, "click", savePayment);
+  safeOn(btnDeletePay, "click", deletePayment);
+
+  safeOn(payMethod, "change", updateCardDerivedUI);
+  safeOn(payAmount, "input", updateCardDerivedUI);
+  safeOn(cardInstallments, "change", updateCardDerivedUI);
+  safeOn(cardFee, "input", updateCardDerivedUI);
+
+  // -----------------------------
+  // Configurações financeiras
+  // -----------------------------
+  function patientConsultationValueFromModel() {
+    return currentPatient?.consultation_value ?? currentPatient?.consultationValue ?? null;
+  }
+  function patientFinancialNoteFromModel() {
+    return currentPatient?.financial_note ?? currentPatient?.financialNote ?? null;
+  }
+
+  async function loadFinanceSettings() {
+    // Sem quebrar se ainda não existir no banco
+    const v = patientConsultationValueFromModel();
+    const n = patientFinancialNoteFromModel();
+
+    if (cfgConsultationValue) cfgConsultationValue.value = v != null ? String(v) : "";
+    if (cfgFinancialNote) cfgFinancialNote.value = n != null ? String(n) : "";
+  }
+
+  async function saveFinanceSettings() {
+    try {
+      if (!C || typeof C.updatePatient !== "function") {
+        console.error("Cornelius.updatePatient não existe.");
+        toast("❌ API não carregada (updatePatient).");
+        return;
+      }
+
+      const val = cfgConsultationValue?.value ? parseFloat(cfgConsultationValue.value) : null;
+      const note = (cfgFinancialNote?.value || "").trim();
+
+      // tenta salvar em colunas prováveis
+      const updates = {
+        consultation_value: val,
+        financial_note: note
+      };
+
+      await C.updatePatient(patientId, updates);
+      await loadPatient();
+      toast("✅ Configurações financeiras salvas");
+    } catch (err) {
+      console.error("Erro ao salvar config financeira:", err);
+      toast("❌ Erro ao salvar configurações financeiras");
+    }
+  }
+
+  safeOn(btnSaveFinanceSettings, "click", saveFinanceSettings);
+
+  // -----------------------------
+  // Boot
+  // -----------------------------
+  (async function boot() {
+    await loadPatient();
+    setTab("history"); // padrão
+  })();
 })();

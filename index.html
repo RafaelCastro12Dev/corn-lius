@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Sistema de gestão de pacientes Cornélius - Busque pacientes e gerencie agendamentos">
   <title>Cornélius | Início</title>
   <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
-
   <link rel="stylesheet" href="assets/css/styles.css"/>
 </head>
 <body>
+  <!-- ========== BARRA SUPERIOR ========== -->
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">
         <div class="brand-badge" aria-hidden="true">
-          <!-- ícone árvore minimal -->
           <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
         </div>
         <div class="brand-title">
@@ -22,30 +22,32 @@
         </div>
       </div>
 
-      <nav class="nav">
-  <a href="index.html">Início</a>
-  <a href="agenda.html">Agenda</a>
-  <a href="cadastro.html">Cadastro</a>
-  <a href="profissionais.html">Profissionais</a>
-</nav>
-
+      <nav class="nav" role="navigation" aria-label="Menu principal">
+        <a href="index.html" class="active">Início</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="cadastro.html">Cadastro</a>
+        <a href="profissionais.html">Profissionais</a>
+      </nav>
     </div>
   </div>
 
+  <!-- ========== CONTEÚDO PRINCIPAL ========== -->
   <main class="container">
+    <!-- Header da página -->
     <div class="header">
       <div>
         <h1>Página inicial</h1>
         <p>Busque pacientes por nome ou CPF e acesse rapidamente histórico e agendamentos.</p>
       </div>
       <div class="actions">
-        <button class="btn" id="btnReset">Reset demo</button>
         <a class="btn primary" href="cadastro.html">Novo paciente</a>
         <a class="btn" href="agenda.html">Abrir agenda</a>
       </div>
     </div>
 
+    <!-- Grid principal: busca + próximos atendimentos -->
     <div class="grid">
+      <!-- Seção de busca de pacientes -->
       <section class="card soft">
         <div class="card-title">
           <h2>Buscar paciente</h2>
@@ -53,36 +55,60 @@
         </div>
 
         <div class="field">
-          <label for="q">Pesquisa</label>
-          <input id="q" type="text" placeholder="Ex.: Rafael ou 00295261676"/>
+          <label for="q">Pesquisa rápida</label>
+          <input 
+            id="q" 
+            type="text" 
+            placeholder="Ex.: Rafael Silva ou 00295261676"
+            autocomplete="off"
+          />
         </div>
 
         <div id="results" class="list"></div>
+        
         <div id="empty" class="empty" style="display:none;">
-          Nenhum paciente encontrado. Cadastre um novo paciente para continuar.
+          <p>Nenhum paciente encontrado.</p>
+          <p><strong>Dica:</strong> Cadastre um novo paciente para começar.</p>
         </div>
       </section>
 
+      <!-- Sidebar: próximos atendimentos -->
       <aside class="card">
         <div class="card-title">
           <h2>Próximos atendimentos</h2>
-          <small>visualização rápida</small>
+          <small>Visualização rápida</small>
         </div>
 
         <div id="upcoming" class="list"></div>
+        
         <div id="upcomingEmpty" class="empty" style="display:none;">
-          Nenhum agendamento futuro encontrado. Abra a Agenda e crie um atendimento.
+          <p>Nenhum agendamento futuro encontrado.</p>
+          <p><strong>Dica:</strong> Abra a Agenda e crie um atendimento.</p>
         </div>
 
-        <div style="margin-top:12px;">
+        <div style="margin-top: 14px; text-align: center;">
           <button class="btn link" id="btnGoAgenda">+ Criar agendamento</button>
         </div>
       </aside>
     </div>
   </main>
 
-<script src="assets/css/js/app.js"></script>
+  <!-- ========== SCRIPTS ========== -->
+</main>
+
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Configuração -->
+<script src="assets/css/js/supabase-config.js"></script>
+
+<!-- API -->
+<script src="assets/css/js/supabase-api.js"></script>
+
+<!-- Script da página -->
 <script src="assets/css/js/index.js"></script>
+<script src="assets/css/js/auth.js"></script>
+
 
 </body>
 </html>

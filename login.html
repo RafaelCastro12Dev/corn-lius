@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cornélius | Login</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+  <link rel="stylesheet" href="assets/css/styles.css"/>
+
+  <style>
+    /* Só layout do login (mantém seu styles.css como base) */
+    .auth-wrap{
+      min-height: 100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 24px;
+      background: var(--bg, #f5fbf8);
+    }
+    .auth-card{
+      width: 100%;
+      max-width: 560px;
+      background: var(--card, #fff);
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 22px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.10);
+      overflow:hidden;
+    }
+    .auth-head{
+      padding: 22px 22px 14px;
+      display:flex;
+      align-items:center;
+      gap: 14px;
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      background: linear-gradient(180deg, rgba(42,157,143,.10), rgba(42,157,143,0));
+    }
+    .auth-logo{
+      width: 46px; height:46px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(0,0,0,.06);
+      flex: 0 0 auto;
+    }
+    .auth-logo img{ width:100%; height:100%; object-fit:cover; }
+    .auth-title{
+      display:flex; flex-direction:column;
+      line-height: 1.1;
+    }
+    .auth-title strong{ font-size: 18px; color: var(--text, #0b2b27); }
+    .auth-title span{ font-size: 13px; color: var(--muted, #5c7571); margin-top:4px; }
+
+    .auth-body{ padding: 18px 22px 22px; }
+    .auth-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 520px){
+      .auth-grid{ grid-template-columns: 1fr; }
+    }
+
+    .auth-msg{
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted, #5c7571);
+      min-height: 18px;
+    }
+    .auth-error{ color: var(--danger, #e63946); }
+
+    .pass-wrap{ position: relative; }
+    .pass-eye{
+      position:absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      opacity: .75;
+      padding: 6px;
+    }
+    .pass-eye:hover{ opacity: 1; }
+
+    .auth-footer{
+      padding: 14px 22px 22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+
+      <div class="auth-head">
+        <div class="auth-logo" aria-hidden="true">
+          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius">
+        </div>
+        <div class="auth-title">
+          <strong>Cornélius</strong>
+          <span>Acesso restrito (senha da clínica)</span>
+        </div>
+      </div>
+
+      <div class="auth-body">
+        <div class="card-title" style="margin: 0 0 10px;">
+          <h2 style="margin:0;">Entrar</h2>
+          <small>Digite usuário e senha para acessar o sistema</small>
+        </div>
+
+        <form id="loginForm" autocomplete="on">
+          <div class="auth-grid">
+            <div>
+              <label class="label" for="loginUser">Usuário</label>
+              <input class="input" id="loginUser" type="text" autocomplete="username">
+            </div>
+
+            <div class="pass-wrap">
+              <label class="label" for="loginPass">Senha</label>
+              <input class="input" id="loginPass" type="password" autocomplete="current-password">
+              <button class="pass-eye" id="togglePass" type="button" title="Mostrar/ocultar senha" aria-label="Mostrar/ocultar senha">
+                👁
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-msg auth-error" id="loginError" style="display:none;"></div>
+
+          <div class="auth-footer">
+            <button class="btn" id="btnClear" type="button" title="Limpar">Limpar</button>
+            <button class="btn primary" id="btnEnter" type="submit">Entrar</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Dependências -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/css/js/supabase-config.js"></script>
+  <script src="assets/css/js/auth.js"></script>
+  <script src="assets/css/js/login.js"></script>
+
+  <script>
+    // Se já estiver autenticado (<= 1h), pula o login e volta pro sistema.
+    (function () {
+      if (window.CorneliusAuth && typeof window.CorneliusAuth.isAuthed === "function") {
+        if (window.CorneliusAuth.isAuthed()) {
+          const params = new URLSearchParams(window.location.search);
+          const next = params.get("next") || "index.html";
+          window.location.href = next;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
