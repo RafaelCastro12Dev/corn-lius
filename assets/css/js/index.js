@@ -200,6 +200,20 @@ window.addEventListener("pageshow", runSearchIfNeeded);
     });
   }
 
+    // =============================================================================
+  // REALTIME (Global)
+  // =============================================================================
+  const RT = window.CorneliusRealtime;
+  if (RT) {
+    RT.on("appointments:change", () => loadUpcoming());
+    RT.on("patients:change", () => runSearchIfNeeded());
+    RT.on("realtime:reconnected", () => {
+  loadUpcoming();
+  runSearchIfNeeded();
+});
+
+  }
+
   // ============================================================================
   // INICIALIZAÇÃO
   // ============================================================================

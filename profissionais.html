@@ -25,6 +25,8 @@
         <a href="agenda.html">Agenda</a>
         <a href="cadastro.html">Cadastro</a>
         <a href="profissionais.html">Profissionais</a>
+        <a href="impressoes.html">Impressões</a>
+
       </nav>
     </div>
   </div>
@@ -36,7 +38,7 @@
         <p>Cadastre as psicólogas para atribuir atendimentos na agenda.</p>
       </div>
       <div class="actions">
-        <button class="btn primary" id="btnAdd">Adicionar profissional</button>
+        <button class="btn primary" id="btnAdd" type="button">Adicionar profissional</button>
       </div>
     </div>
 
@@ -48,33 +50,36 @@
       </div>
     </section>
 
-    <!-- ✅ Senha do sistema (FORA do modal) -->
+    <!-- Senha do sistema -->
     <section class="card" style="margin-top:24px;">
       <div class="card-title">
         <h2>Senha do sistema</h2>
         <small>Altera a senha de acesso da clínica</small>
       </div>
 
-      <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:12px;">
-        <div>
-          <label class="label" for="oldPass">Senha atual</label>
-          <input class="input" id="oldPass" type="password" placeholder="Senha atual" autocomplete="current-password">
+      <!-- Form para Enter funcionar -->
+      <form id="changePassForm" autocomplete="on">
+        <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+          <div>
+            <label class="label" for="oldPass">Senha atual</label>
+            <input class="input" id="oldPass" type="password" placeholder="Senha atual" autocomplete="current-password">
+          </div>
+
+          <div>
+            <label class="label" for="newPass">Nova senha</label>
+            <input class="input" id="newPass" type="password" placeholder="Nova senha" autocomplete="new-password">
+          </div>
+
+          <div>
+            <label class="label" for="newPass2">Confirmar</label>
+            <input class="input" id="newPass2" type="password" placeholder="Confirmar nova senha" autocomplete="new-password">
+          </div>
         </div>
 
-        <div>
-          <label class="label" for="newPass">Nova senha</label>
-          <input class="input" id="newPass" type="password" placeholder="Nova senha" autocomplete="new-password">
+        <div class="actions" style="margin-top:14px;">
+          <button class="btn primary" id="btnChangePass" type="submit">Alterar senha</button>
         </div>
-
-        <div>
-          <label class="label" for="newPass2">Confirmar</label>
-          <input class="input" id="newPass2" type="password" placeholder="Confirmar nova senha" autocomplete="new-password">
-        </div>
-      </div>
-
-      <div class="actions" style="margin-top:14px;">
-        <button class="btn primary" id="btnChangePass">Alterar senha</button>
-      </div>
+      </form>
 
       <div id="passMsg" class="empty" style="display:none;"></div>
     </section>
@@ -84,50 +89,53 @@
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <header>
           <h3 id="modalTitle">Profissional</h3>
-          <button class="close-x" id="btnClose" aria-label="Fechar">×</button>
+          <!-- type=button para não submeter form -->
+          <button class="close-x" id="btnClose" type="button" aria-label="Fechar">×</button>
         </header>
 
-        <div class="body">
-          <div class="field">
-            <label for="proName">Nome</label>
-            <input id="proName" placeholder="Ex.: Paulinha" />
+        <!-- Form para Enter funcionar -->
+        <form id="professionalForm" autocomplete="on">
+          <div class="body">
+            <div class="field">
+              <label for="proName">Nome</label>
+              <input class="input" id="proName" type="text" placeholder="Ex.: Paulinha" autocomplete="name" />
+            </div>
+<div class="field">
+  <label for="proCrp">CRP</label>
+  <input id="proCrp" type="text" placeholder="Ex.: 12345" autocomplete="off" />
+</div>
+
+            <div class="field">
+              <label for="proEmail">Email</label>
+              <input class="input" id="proEmail" type="email" placeholder="ex.: profissional@clinica.com" autocomplete="email" />
+            </div>
+
+            <div class="field">
+              <label for="proColor">Cor (opcional)</label>
+              <select id="proColor">
+                <option value="#457B9D">Azul</option>
+                <option value="#2A9D8F">Verde</option>
+                <option value="#9B5DE5">Roxo</option>
+                <option value="#F4A261">Laranja</option>
+                <option value="#6C757D">Cinza</option>
+              </select>
+            </div>
+
+            <div class="empty">
+              Dica: a cor do profissional é apenas visual (não afeta a cor do agendamento, que pode seguir a do paciente).
+            </div>
           </div>
 
-          <div class="field">
-            <label for="proEmail">Email</label>
-            <input id="proEmail" type="email" placeholder="ex.: profissional@clinica.com" autocomplete="email" />
-          </div>
-
-          <div class="field" style="display:flex; gap:12px; align-items:center;">
-            <input id="proNotifyEmail" type="checkbox" />
-            <label for="proNotifyEmail" style="margin:0;">Receber notificações por e-mail</label>
-          </div>
-
-          <div class="field">
-            <label for="proColor">Cor (opcional)</label>
-            <select id="proColor">
-              <option value="#457B9D">Azul</option>
-              <option value="#2A9D8F">Verde</option>
-              <option value="#9B5DE5">Roxo</option>
-              <option value="#F4A261">Laranja</option>
-              <option value="#6C757D">Cinza</option>
-            </select>
-          </div>
-
-          <div class="empty">
-            Dica: a cor do profissional é apenas visual (não afeta a cor do agendamento, que pode seguir a do paciente).
-          </div>
-        </div>
-
-        <footer>
-          <div class="actions" style="justify-content:flex-start;">
-            <button class="btn danger" id="btnDelete" style="display:none;">Excluir</button>
-          </div>
-          <div class="actions">
-            <button class="btn" id="btnCancel">Cancelar</button>
-            <button class="btn primary" id="btnSave">Salvar</button>
-          </div>
-        </footer>
+          <footer>
+            <div class="actions" style="justify-content:flex-start;">
+              <button class="btn danger" id="btnDelete" type="button" style="display:none;">Excluir</button>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnCancel" type="button">Cancelar</button>
+              <button class="btn primary" id="btnSave" type="submit">Salvar</button>
+            </div>
+          </footer>
+        </form>
       </div>
     </div>
   </main>
@@ -135,8 +143,9 @@
   <!-- Scripts (ordem correta) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/css/js/supabase-config.js"></script>
-  <script src="assets/css/js/auth.js"></script>
+  <script src="assets/css/js/realtime.js"></script>
   <script src="assets/css/js/supabase-api.js"></script>
+  <script src="assets/css/js/auth.js"></script>
   <script src="assets/css/js/profissionais.js"></script>
 </body>
 </html>

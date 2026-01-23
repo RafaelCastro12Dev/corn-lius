@@ -694,6 +694,50 @@
     }
   }
 
+// ============================
+// Atestados (Impressões)
+// ============================
+async function addAttestation(payload) {
+  const { data, error } = await sb
+    .from("attestations")
+    .insert(payload)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function updateAttestation(id, payload) {
+  const { data, error } = await sb
+    .from("attestations")
+    .update(payload)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getAttestationById(id) {
+  const { data, error } = await sb
+    .from("attestations")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getAttestationsByPatient(patientId) {
+  const { data, error } = await sb
+    .from("attestations")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
   // ============================================================================
   // OPERAÇÕES COM PAGAMENTOS
   // ============================================================================
@@ -936,6 +980,13 @@
     updatePayment,
     deletePayment,
     calcFinancialSummary,
+
+// Atestados (Impressões)
+addAttestation,
+updateAttestation,
+getAttestationById,
+getAttestationsByPatient,
+
 
     // Auxiliares
     resetDemo

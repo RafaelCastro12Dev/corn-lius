@@ -28,6 +28,8 @@
         <a href="agenda.html" class="active">Agenda</a>
         <a href="cadastro.html">Cadastro</a>
         <a href="profissionais.html">Profissionais</a>
+        <a href="impressoes.html">Impressões</a>
+
       </nav>
     </div>
   </div>
@@ -41,7 +43,7 @@
         <p>Agende em qualquer dia/horário e organize por profissional.</p>
       </div>
       <div class="actions">
-        <button class="btn primary" id="btnNew">+ Novo agendamento</button>
+        <button class="btn primary" id="btnNew" type="button">+ Novo agendamento</button>
       </div>
     </div>
 
@@ -64,7 +66,7 @@
       <div id="calendarWrap" style="margin-top: 16px;">
         <div id="calendar"></div>
       </div>
-      
+
       <div id="calMissing" class="empty" style="display:none; margin-top:14px;">
         ⚠️ Não foi possível carregar o calendário (CDN). Verifique sua conexão ou teste com Live Server.
       </div>
@@ -75,152 +77,148 @@
       <div class="modal" role="dialog" aria-labelledby="modalTitle">
         <header>
           <h3 id="modalTitle">Novo agendamento</h3>
-          <button class="close-x" id="btnClose" aria-label="Fechar modal">×</button>
+          <button class="close-x" id="btnClose" type="button" aria-label="Fechar modal">×</button>
         </header>
 
-        <div class="body">
-          <!-- Paciente e Profissional -->
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <!-- ✅ FORM: permite Enter => submit -->
+        <form id="appointmentForm" autocomplete="on">
+          <div class="body">
+            <!-- Paciente e Profissional -->
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="field">
+                <label for="patientSearch">Paciente *</label>
+
+                <input
+                  id="patientSearch"
+                  type="text"
+                  placeholder="Digite nome ou CPF..."
+                  autocomplete="off"
+                  required
+                />
+
+                <!-- aqui fica o UUID real do paciente selecionado -->
+                <input id="patientId" type="hidden" />
+
+                <!-- sugestões -->
+                <div id="patientSuggest" class="suggest" style="display:none;"></div>
+              </div>
+
+              <div class="field">
+                <label for="professionalSelect">Profissional *</label>
+                <select id="professionalSelect" required>
+                  <option value="">— Selecione —</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Sala -->
             <div class="field">
-  <label for="patientSearch">Paciente *</label>
-
-  <input
-    id="patientSearch"
-    type="text"
-    placeholder="Digite nome ou CPF..."
-    autocomplete="off"
-    required
-  />
-
-  <!-- aqui fica o UUID real do paciente selecionado -->
-  <input id="patientId" type="hidden" />
-
-  <!-- sugestões -->
-  <div id="patientSuggest" class="suggest" style="display:none;"></div>
-</div>
-
-            <div class="field">
-              <label for="professionalSelect">Profissional *</label>
-              <select id="professionalSelect" required>
+              <label for="apptRoom">Sala de atendimento</label>
+              <select id="apptRoom" name="apptRoom">
                 <option value="">— Selecione —</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Sala -->
-          <div class="field">
-            <label for="apptRoom">Sala de atendimento</label>
-            <select id="apptRoom" name="apptRoom">
-              <option value="">— Selecione —</option>
-              <option value="Sala Infantil">Sala Infantil</option>
-              <option value="Sala 1">Sala 1</option>
-              <option value="Sala 2">Sala 2</option>
-              <option value="Sala 3">Sala 3</option>
-            </select>
-          </div>
-
-          <!-- Data e hora -->
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="startAt">Data/hora início *</label>
-              <input id="startAt" type="datetime-local" required/>
-            </div>
-            <div class="field">
-              <label for="endAt">Data/hora fim *</label>
-              <input id="endAt" type="datetime-local" required/>
-            </div>
-          </div>
-<!-- MODO MULTIPLO (novo) -->
-<div class="row" style="margin-top:12px;">
-  <label class="chk" style="display:flex;align-items:center;gap:10px;">
-    <input type="checkbox" id="multiMode" />
-    <span><strong>Agendamento múltiplo</strong> (criar vários horários de uma vez)</span>
-  </label>
-</div>
-
-<div id="multiBox" style="display:none; margin-top:12px;">
-  <div class="row" style="display:flex; gap:12px; align-items:center;">
-    <div style="min-width:160px;">
-      <label class="label">Quantidade</label>
-      <select id="multiCount" class="input">
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="5">5</option>
-        <option value="7">7</option>
-        <option value="10">10</option>
-      </select>
-    </div>
-
-    <div style="margin-top:22px;">
-      <button type="button" class="btn" id="btnBuildMulti">Gerar campos</button>
-    </div>
-  </div>
-
-  <div id="multiList" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;"></div>
-
-  <div class="muted" style="margin-top:8px;">
-    Dica: Profissional, sala, cor e observações serão aplicados a todos os horários.
-  </div>
-</div>
-
-          <!-- Cor e observações -->
-          <div class="grid" style="grid-template-columns: 0.6fr 1.4fr; gap: 14px;">
-            <div class="field">
-              <label for="color">Cor do evento</label>
-              <select id="color">
-                <option value="#457B9D">🔵 Azul</option>
-                <option value="#2A9D8F">🟢 Verde</option>
-                <option value="#9B5DE5">🟣 Roxo</option>
-                <option value="#F4A261">🟠 Laranja</option>
-                <option value="#6C757D">⚫ Cinza</option>
+                <option value="Sala Infantil">Sala Infantil</option>
+                <option value="Sala 1">Sala 1</option>
+                <option value="Sala 2">Sala 2</option>
+                <option value="Sala 3">Sala 3</option>
               </select>
             </div>
 
-            <div class="field">
-              <label for="notes">Observações</label>
-              <input id="notes" type="text" placeholder="Ex.: Avaliação inicial, retorno, etc."/>
+            <!-- Data e hora -->
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="field">
+                <label for="startAt">Data/hora início *</label>
+                <input id="startAt" type="datetime-local" required/>
+              </div>
+              <div class="field">
+                <label for="endAt">Data/hora fim *</label>
+                <input id="endAt" type="datetime-local" required/>
+              </div>
+            </div>
+
+            <!-- MODO MULTIPLO (novo) -->
+            <div class="row" style="margin-top:12px;">
+              <label class="chk" style="display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" id="multiMode" />
+                <span><strong>Agendamento múltiplo</strong> (criar vários horários de uma vez)</span>
+              </label>
+            </div>
+
+            <div id="multiBox" style="display:none; margin-top:12px;">
+              <div class="row" style="display:flex; gap:12px; align-items:center;">
+                <div style="min-width:160px;">
+                  <label class="label">Quantidade</label>
+                  <select id="multiCount" class="input">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                    <option value="7">7</option>
+                    <option value="10">10</option>
+                  </select>
+                </div>
+
+                <div style="margin-top:22px;">
+                  <button type="button" class="btn" id="btnBuildMulti">Gerar campos</button>
+                </div>
+              </div>
+
+              <div id="multiList" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;"></div>
+
+              <div class="muted" style="margin-top:8px;">
+                Dica: Profissional, sala, cor e observações serão aplicados a todos os horários.
+              </div>
+            </div>
+
+            <!-- Cor e observações -->
+            <div class="grid" style="grid-template-columns: 0.6fr 1.4fr; gap: 14px;">
+              <div class="field">
+                <label for="color">Cor do evento</label>
+                <select id="color">
+                  <option value="#457B9D">🔵 Azul</option>
+                  <option value="#2A9D8F">🟢 Verde</option>
+                  <option value="#9B5DE5">🟣 Roxo</option>
+                  <option value="#F4A261">🟠 Laranja</option>
+                  <option value="#6C757D">⚫ Cinza</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="notes">Observações</label>
+                <input id="notes" type="text" placeholder="Ex.: Avaliação inicial, retorno, etc."/>
+              </div>
+            </div>
+
+            <div class="empty" style="margin-top:14px;">
+              💡 <strong>Dica:</strong> A cor pode ser padronizada por paciente ou profissional para facilitar visualização.
             </div>
           </div>
 
-          <div class="empty" style="margin-top:14px;">
-            💡 <strong>Dica:</strong> A cor pode ser padronizada por paciente ou profissional para facilitar visualização.
-          </div>
-        </div>
-
-        <footer>
-          <div class="actions" style="justify-content:flex-start;">
-            <button class="btn danger" id="btnDelete" style="display:none;">Excluir</button>
-          </div>
-          <div class="actions">
-            <button class="btn" id="btnCancel">Cancelar</button>
-            <button class="btn primary" id="btnSave">Salvar agendamento</button>
-          </div>
-        </footer>
+          <footer>
+            <div class="actions" style="justify-content:flex-start;">
+              <button class="btn danger" id="btnDelete" type="button" style="display:none;">Excluir</button>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnCancel" type="button">Cancelar</button>
+              <!-- ✅ submit => Enter salva -->
+              <button class="btn primary" id="btnSave" type="submit">Salvar agendamento</button>
+            </div>
+          </footer>
+        </form>
       </div>
     </div>
   </main>
 
-</main>
+  <!-- FullCalendar CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/pt-br.global.min.js"></script>
 
-<!-- 1. FullCalendar CDN (ANTES de tudo) -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/pt-br.global.min.js"></script>
-
-<!-- 2. Supabase CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- 3. Configuração -->
-<script src="assets/css/js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/css/js/supabase-config.js"></script>
-
-<!-- API -->
+<script src="assets/css/js/realtime.js"></script>
 <script src="assets/css/js/supabase-api.js"></script>
-
-
-<!-- 5. Scripts da página -->
+<script src="assets/css/js/auth.js"></script>
 <script src="assets/css/js/feriados.js"></script>
 <script src="assets/css/js/agenda.js"></script>
-<script src="assets/css/js/auth.js"></script>
+
 </body>
 </html>

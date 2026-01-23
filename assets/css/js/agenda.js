@@ -13,7 +13,6 @@
 
   if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
 
-
   const C = window.Cornelius;
   if (C && typeof C.setActiveNav === "function") C.setActiveNav();
 
@@ -29,6 +28,9 @@
   const btnCancel = document.getElementById("btnCancel");
   const btnSave = document.getElementById("btnSave");
   const btnDelete = document.getElementById("btnDelete");
+
+  // ✅ Form do modal (para Enter salvar)
+  const appointmentForm = document.getElementById("appointmentForm");
 
   const patientSearch = document.getElementById("patientSearch");
   const patientId = document.getElementById("patientId");
@@ -57,7 +59,6 @@
   let editingId = null;
   let blockedHolidays = [];
 
-  
   // -----------------------------
   // Helpers
   // -----------------------------
@@ -780,6 +781,15 @@
   if (btnClose) btnClose.addEventListener("click", closeModal);
   if (btnCancel) btnCancel.addEventListener("click", closeModal);
 
+  // ✅ Enter no form => salvar (mesma função do botão)
+  if (appointmentForm) {
+    appointmentForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await saveSmart();
+    });
+  }
+
+  // mantém clique funcionando (sem alterar comportamento)
   if (btnSave) btnSave.addEventListener("click", saveSmart);
   if (btnDelete) btnDelete.addEventListener("click", deleteAppointment);
 
@@ -793,78 +803,87 @@
   }
 
   async function applyPatientDefaultsById(pId) {
-  if (!pId) return;
-  try {
-    // Você provavelmente já tem isso no supabase-api.js
-    if (!C || typeof C.getPatientById !== "function") return;
+    if (!pId) return;
+    try {
+      // Você provavelmente já tem isso no supabase-api.js
+      if (!C || typeof C.getPatientById !== "function") return;
 
-    const p = await C.getPatientById(pId);
-    if (!p) return;
+      const p = await C.getPatientById(pId);
+      if (!p) return;
 
-    // cor do paciente
-    if (p.color && color) color.value = p.color;
+      // cor do paciente
+      if (p.color && color) color.value = p.color;
 
-    // profissional vinculado ao paciente
-    const profId = p.assigned_professional_id || "";
-    if (profId && professionalSelect) {
-      // Espera o select ter as opções (porque ele carrega async no refresh)
-      await waitForProfessionalOption(profId, 2000);
-      professionalSelect.value = profId;
-    }
-  } catch (e) {
-    console.warn("Não foi possível aplicar defaults do paciente:", e);
-  }
-}
-
-function waitForProfessionalOption(profId, timeoutMs = 2000) {
-  return new Promise((resolve) => {
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const opt = professionalSelect?.querySelector?.(`option[value="${profId}"]`);
-      if (opt || Date.now() - start > timeoutMs) {
-        clearInterval(timer);
-        resolve();
+      // profissional vinculado ao paciente
+      const profId = p.assigned_professional_id || "";
+      if (profId && professionalSelect) {
+        // Espera o select ter as opções (porque ele carrega async no refresh)
+        await waitForProfessionalOption(profId, 2000);
+        professionalSelect.value = profId;
       }
-    }, 50);
-  });
-}
+    } catch (e) {
+      console.warn("Não foi possível aplicar defaults do paciente:", e);
+    }
+  }
+
+  function waitForProfessionalOption(profId, timeoutMs = 2000) {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const timer = setInterval(() => {
+        const opt = professionalSelect?.querySelector?.(`option[value="${profId}"]`);
+        if (opt || Date.now() - start > timeoutMs) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 50);
+    });
+  }
 
   // -----------------------------
   // Passo 2.1: abrir modal automático + pré-preencher paciente via URL
   // Ex:
   // agenda.html?new=1&patient=UUID&patient_name=Rafael%20Araujo
   // -----------------------------
- document.addEventListener("DOMContentLoaded", () => {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("new") !== "1") return;
+  document.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") !== "1") return;
 
-  const prePatientId = params.get("patient") || "";
-  const prePatientName = params.get("patient_name") || "";
+    const prePatientId = params.get("patient") || "";
+    const prePatientName = params.get("patient_name") || "";
 
-  setTimeout(async () => {
-    // 1) abre o modal
-    openModal();
-    setDefaultTimes();
+    setTimeout(async () => {
+      // 1) abre o modal
+      openModal();
+      setDefaultTimes();
+
+      // 2) preenche paciente (id + nome)
+      if (prePatientId && patientId) patientId.value = prePatientId;
+      if (prePatientName && patientSearch) {
+        patientSearch.value = decodeURIComponent(prePatientName);
+      }
+
+      // 3) aplica cor e profissional vindos do banco
+      await applyPatientDefaultsById(prePatientId);
+
+      // 4) esconde sugestão
+      if (patientSuggest) patientSuggest.style.display = "none";
+
+      // 5) limpa a URL
+      history.replaceState(null, "", "agenda.html");
+    }, 300);
+  });
 
 
-    // 2) preenche paciente (id + nome)
-    if (prePatientId && patientId) patientId.value = prePatientId;
-    if (prePatientName && patientSearch) {
-      patientSearch.value = decodeURIComponent(prePatientName);
-    }
-
-    // 3) aplica cor e profissional vindos do banco
-    await applyPatientDefaultsById(prePatientId);
-
-    // 4) esconde sugestão
-    if (patientSuggest) patientSuggest.style.display = "none";
-
-    // 5) limpa a URL
-    history.replaceState(null, "", "agenda.html");
-  }, 300);
-});
-
-
+    // =============================================================================
+  // REALTIME (Global)
+  // =============================================================================
+  const RT = window.CorneliusRealtime;
+  if (RT && typeof refresh === "function") {
+    RT.on("appointments:change", () => refresh());
+    RT.on("patients:change", () => refresh());
+    RT.on("professionals:change", () => refresh());
+    RT.on("realtime:reconnected", () => refresh());
+  }
 
   // -----------------------------
   // Boot

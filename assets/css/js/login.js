@@ -1,4 +1,4 @@
-// assets/css/js/login.js
+// assets/js/login.js
 (function () {
   "use strict";
 
@@ -38,6 +38,7 @@
       return;
     }
 
+    // Mantém UX atual: usuário fixo
     if (u !== FIXED_USER) {
       showError("Usuário inválido.");
       return;
@@ -53,7 +54,7 @@
       location.href = getNext();
     } catch (e) {
       console.error(e);
-      showError("Erro ao validar login.");
+      showError("Erro ao entrar. Verifique a senha.");
     }
   }
 
@@ -63,7 +64,6 @@
   });
 
   btnClear.addEventListener("click", () => {
-    window.CorneliusAuth.clearAuth();
     userEl.value = FIXED_USER;
     passEl.value = "";
     clearError();

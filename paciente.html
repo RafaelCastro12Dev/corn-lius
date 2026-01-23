@@ -8,6 +8,7 @@
   <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
   <link rel="stylesheet" href="assets/css/styles.css"/>
 </head>
+
 <body>
   <!-- ========== BARRA SUPERIOR ========== -->
   <div class="topbar">
@@ -22,435 +23,382 @@
         </div>
       </div>
 
-      <nav class="nav" role="navigation" aria-label="Menu principal">
+      <nav class="nav">
         <a href="index.html">Início</a>
         <a href="agenda.html">Agenda</a>
         <a href="cadastro.html">Cadastro</a>
         <a href="profissionais.html">Profissionais</a>
+        <a href="impressoes.html">Impressões</a>
+
       </nav>
     </div>
   </div>
 
-  <!-- ========== CONTEÚDO PRINCIPAL ========== -->
+  <!-- ========== CONTEÚDO ========== -->
   <main class="container">
-    <!-- Header da página -->
+
+    <!-- Header -->
     <div class="header">
       <div>
         <h1 id="title">Paciente</h1>
-        <p id="subtitle">Ficha completa do paciente.</p>
+        <p id="subtitle" style="margin:6px 0 0;">Ficha completa do paciente.</p>
       </div>
+
       <div class="actions">
-        <a class="btn" href="index.html">← Voltar</a>
-        <button class="btn" id="btnGoAgenda">Abrir agenda</button>
-        <button class="btn primary" id="btnEdit">✏️ Editar dados</button>
+        <button class="btn" id="btnGoAgenda" type="button">Voltar</button>
+        <button class="btn" id="btnSchedule" type="button">Agendar</button>
+        <button class="btn primary" id="btnEdit" type="button">Editar dados</button>
       </div>
     </div>
 
-    <!-- Tabs de navegação -->
-    <section class="card" style="padding:16px;">
-      <div class="actions" style="justify-content:flex-start; gap: 8px;">
-        <button class="btn primary" id="tabHistory">📋 Histórico</button>
-        <button class="btn" id="tabAppointments">📅 Agendamentos</button>
-        <button class="btn" id="tabFinance">💰 Financeiro</button>
-        <button class="btn" id="tabFinanceSettings">⚙️ Config. Financeira</button>
-      </div>
-    </section>
+    <div class="grid" style="grid-template-columns: 340px 1fr; gap:18px;">
+      <!-- Sidebar -->
+      <aside class="card">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span id="colorDot" class="color-dot" style="width:14px;height:14px;"></span>
+          <strong>Dados</strong>
+        </div>
+        <div id="patientFields" style="margin-top:12px;"></div>
+      </aside>
 
-    <!-- Grid principal: conteúdo + sidebar -->
-    <div class="grid">
-      <!-- COLUNA ESQUERDA: Conteúdo das tabs -->
-      <section class="card soft">
+      <!-- Conteúdo -->
+      <section class="card">
 
-        <!-- ========== TAB: HISTÓRICO ========== -->
-        <div id="panelHistory">
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="btn primary" id="tabHistory" type="button">📋 Histórico</button>
+          <button class="btn" id="tabAppointments" type="button">🗓️ Agendamentos</button>
+          <button class="btn" id="tabFinance" type="button">💰 Financeiro</button>
+          <button class="btn" id="tabFinanceSettings" type="button">⚙️ Config. Financeira</button>
+        </div>
+
+        <!-- PANEL: HISTÓRICO -->
+        <div id="panelHistory" style="margin-top:14px;">
           <div class="card-title">
             <h2>Histórico de atendimentos</h2>
             <small>Atendimentos + anotações</small>
           </div>
 
-          <div class="actions" style="justify-content:flex-start; margin-bottom:14px;">
-            <button class="btn primary" id="btnAddNote">+ Adicionar anotação</button>
+          <div class="actions" style="margin-top:10px;">
+            <button class="btn primary" id="btnAddNote" type="button">+ Adicionar anotação</button>
           </div>
 
-          <div id="notesList" class="list"></div>
-          
-          <div id="notesEmpty" class="empty" style="display:none;">
-            <p>📝 Nenhum registro de atendimento ainda.</p>
-            <p><strong>Dica:</strong> Clique em "Adicionar anotação" para criar o primeiro registro.</p>
-          </div>
+          <div id="notesEmpty" class="empty" style="display:none; margin-top:12px;">Nenhuma anotação registrada.</div>
+          <div id="notesList" class="list" style="margin-top:12px;"></div>
         </div>
-<!-- ========== TAB: AGENDAMENTOS ========== -->
-<div id="panelAppointments" style="display:none;">
-  <div class="card-title">
-    <h2>Agendamentos</h2>
-    <small>Futuros e anteriores</small>
-  </div>
 
-  <div class="actions" style="justify-content:flex-start; margin-bottom:14px;">
-  <button class="btn primary" id="btnSchedule">Agendar</button>
-</div>
-
-
-  <h3 style="margin: 8px 0 10px;">Próximos</h3>
-  <div id="apptsUpcomingList" class="list"></div>
-  <div id="apptsUpcomingEmpty" class="empty" style="display:none;">
-    <p>📌 Nenhum agendamento futuro.</p>
-  </div>
-
-  <h3 style="margin: 18px 0 10px;">Anteriores</h3>
-  <div id="apptsPastList" class="list"></div>
-  <div id="apptsPastEmpty" class="empty" style="display:none;">
-    <p>🕘 Nenhum agendamento anterior.</p>
-  </div>
-</div>
-
-        <!-- ========== TAB: FINANCEIRO ========== -->
-        <div id="panelFinance" style="display:none;">
+        <!-- PANEL: AGENDAMENTOS -->
+        <div id="panelAppointments" style="display:none; margin-top:14px;">
           <div class="card-title">
-            <h2>Controle financeiro</h2>
-            <small>Pagamentos e pendências</small>
+            <h2>Agendamentos</h2>
+            <small>Próximos e passados</small>
           </div>
 
-          <!-- Cards de resumo financeiro -->
-          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom:16px;">
-            <div class="item" style="flex-direction: column; align-items: stretch;">
-              <div class="meta">
-                <strong style="color: var(--info);">Valor da consulta</strong>
-                <span id="sumConsultation" style="font-size: 18px; font-weight: 700; color: var(--text);">-</span>
-              </div>
-            </div>
-            <div class="item" style="flex-direction: column; align-items: stretch;">
-              <div class="meta">
-                <strong style="color: var(--success);">Total pago</strong>
-                <span id="sumPaid" style="font-size: 18px; font-weight: 700; color: var(--text);">-</span>
-              </div>
-            </div>
-            <div class="item" style="flex-direction: column; align-items: stretch;">
-              <div class="meta">
-                <strong style="color: var(--danger);">Pendências</strong>
-                <span id="sumPending" style="font-size: 18px; font-weight: 700; color: var(--text);">-</span>
-              </div>
-            </div>
-          </div>
+          <h3 style="margin:14px 0 8px;">Próximos</h3>
+          <div id="apptsUpcomingEmpty" class="empty" style="display:none;">Nenhum agendamento futuro.</div>
+          <div id="apptsUpcomingList"></div>
 
-          <div class="actions" style="justify-content:flex-start; margin-bottom:14px;">
-            <button class="btn primary" id="btnAddPayment">+ Registrar pagamento</button>
-          </div>
-
-          <div id="paymentsList" class="list"></div>
-          
-          <div id="paymentsEmpty" class="empty" style="display:none;">
-            <p>💳 Nenhum pagamento registrado ainda.</p>
-          </div>
+          <h3 style="margin:18px 0 8px;">Passados</h3>
+          <div id="apptsPastEmpty" class="empty" style="display:none;">Nenhum agendamento passado.</div>
+          <div id="apptsPastList"></div>
         </div>
 
-        <!-- ========== TAB: CONFIG FINANCEIRA ========== -->
-        <div id="panelFinanceSettings" style="display:none;">
+        <!-- PANEL: FINANCEIRO -->
+        <div id="panelFinance" style="display:none; margin-top:14px;">
+          <div class="card-title">
+            <h2>Financeiro</h2>
+            <small>Pagamentos e resumo</small>
+          </div>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:12px;">
+            <div class="card" style="padding:12px;">
+              <div class="text-sm text-secondary">Valor consulta</div>
+              <div style="font-size:18px; font-weight:700;" id="sumConsultation">-</div>
+            </div>
+            <div class="card" style="padding:12px;">
+              <div class="text-sm text-secondary">Pago</div>
+              <div style="font-size:18px; font-weight:700;" id="sumPaid">-</div>
+            </div>
+            <div class="card" style="padding:12px;">
+              <div class="text-sm text-secondary">Pendente</div>
+              <div style="font-size:18px; font-weight:700;" id="sumPending">-</div>
+            </div>
+          </div>
+
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn primary" id="btnAddPayment" type="button">+ Adicionar pagamento</button>
+          </div>
+
+          <div id="paymentsEmpty" class="empty" style="display:none; margin-top:12px;">Nenhum pagamento registrado.</div>
+          <div id="paymentsList" class="list" style="margin-top:12px;"></div>
+        </div>
+
+        <!-- PANEL: CONFIG FINANCEIRA -->
+        <div id="panelFinanceSettings" style="display:none; margin-top:14px;">
           <div class="card-title">
             <h2>Configurações financeiras</h2>
-            <small>Valor padrão por paciente</small>
+            <small>Valores padrão e observações</small>
           </div>
 
-          <div class="field">
-            <label for="cfgConsultationValue">Valor padrão da consulta (R$)</label>
-            <input 
-              id="cfgConsultationValue" 
-              type="number" 
-              min="0" 
-              step="0.01" 
-              placeholder="Ex.: 180.00"
-            />
+          <div class="grid" style="grid-template-columns: 1fr; gap:12px; margin-top:12px;">
+            <div>
+              <label class="label" for="cfgConsultationValue">Valor da consulta</label>
+              <input class="input" id="cfgConsultationValue" type="number" step="0.01" placeholder="Ex.: 120.00">
+            </div>
+
+            <div>
+              <label class="label" for="cfgFinancialNote">Observação financeira</label>
+              <textarea class="input" id="cfgFinancialNote" rows="4" placeholder="Ex.: Paciente em pacote, observações..."></textarea>
+            </div>
           </div>
 
-          <div class="field">
-            <label for="cfgFinancialNote">Observações financeiras</label>
-            <textarea 
-              id="cfgFinancialNote" 
-              placeholder="Ex.: valor social, pacote de sessões, desconto especial, convênio, etc."
-              style="min-height: 120px;"
-            ></textarea>
-          </div>
-
-          <div class="actions" style="justify-content:flex-start;">
-            <button class="btn primary" id="btnSaveFinanceSettings">💾 Salvar configurações</button>
-          </div>
-
-          <div class="empty" style="margin-top:16px;">
-            💡 <strong>Dica:</strong> Esse valor serve como referência e preencherá automaticamente o campo de valor ao registrar um novo pagamento.
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn primary" id="btnSaveFinanceSettings" type="button">Salvar</button>
           </div>
         </div>
+
       </section>
-
-      <!-- COLUNA DIREITA: Dados básicos do paciente -->
-      <aside class="card">
-        <div class="card-title">
-          <h2>Dados cadastrais</h2>
-          <small>Informações básicas</small>
-        </div>
-
-        <div style="display:flex; gap:10px; align-items:center; margin-bottom:14px;">
-          <span class="pill">
-            <span class="dot" id="colorDot"></span>
-            Cor do paciente
-          </span>
-        </div>
-
-        <div id="patientFields" class="list"></div>
-
-        <div class="empty" style="margin-top:16px;">
-           ℹ️ Informações do sistema
-Os dados exibidos nesta tela são armazenados de forma segura e vinculados ao paciente no sistema.
-        </div>
-      </aside>
     </div>
 
     <!-- ========== MODAL: ANOTAÇÃO ========== -->
-    <div class="modal-backdrop" id="noteBackdrop" role="dialog" aria-modal="true">
-      <div class="modal">
+    <div class="modal-backdrop" id="noteBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
         <header>
           <h3>Nova anotação</h3>
-          <button class="close-x" id="btnCloseNote" aria-label="Fechar">×</button>
+          <button class="close-x" id="btnCloseNote" type="button" aria-label="Fechar">×</button>
         </header>
 
-        <div class="body">
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="noteProfessional">Profissional</label>
-              <select id="noteProfessional"></select>
+        <form id="noteForm" autocomplete="on">
+          <div class="body">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
+              <div>
+                <label class="label" for="noteProfessional">Profissional</label>
+                <select class="input" id="noteProfessional"></select>
+              </div>
+
+              <div>
+                <label class="label" for="noteLinkAppt">Vincular a atendimento</label>
+                <select class="input" id="noteLinkAppt"></select>
+              </div>
             </div>
-            <div class="field">
-              <label for="noteLinkAppt">Vincular a atendimento</label>
-              <select id="noteLinkAppt">
-                <option value="">Nenhum</option>
-              </select>
+
+            <div style="margin-top:12px;">
+              <label class="label" for="noteWhen">Data/hora do registro</label>
+              <input class="input" id="noteWhen" type="datetime-local">
+            </div>
+
+            <div style="margin-top:12px;">
+              <label class="label" for="noteText">Anotação clínica</label>
+              <textarea class="input" id="noteText" rows="8" placeholder="Digite a anotação..."></textarea>
             </div>
           </div>
 
-          <div class="field">
-            <label for="noteWhen">Data/hora do registro</label>
-            <input id="noteWhen" type="datetime-local"/>
-          </div>
-          
-          <div class="field">
-            <label for="noteText">Anotação clínica</label>
-            <textarea 
-              id="noteText" 
-              placeholder="Descreva observações sobre o atendimento, evolução do paciente, etc."
-              style="min-height: 140px;"
-            ></textarea>
-          </div>
-        </div>
-
-        <footer>
-          <div class="actions" style="justify-content:flex-start;">
-            <button class="btn danger" id="btnDeleteNote" style="display:none;">🗑️ Excluir</button>
-          </div>
-          <div class="actions">
-            <button class="btn" id="btnCancelNote">Cancelar</button>
-            <button class="btn primary" id="btnSaveNote">💾 Salvar anotação</button>
-          </div>
-        </footer>
+          <footer>
+            <div class="actions" style="justify-content:flex-start;">
+              <button class="btn danger" id="btnDeleteNote" type="button" style="display:none;">🗑 Excluir</button>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnCancelNote" type="button">Cancelar</button>
+              <button class="btn primary" id="btnSaveNote" type="submit">💾 Salvar anotação</button>
+            </div>
+          </footer>
+        </form>
       </div>
     </div>
 
     <!-- ========== MODAL: PAGAMENTO ========== -->
-    <div class="modal-backdrop" id="payBackdrop" role="dialog" aria-modal="true">
-      <div class="modal">
+    <div class="modal-backdrop" id="payBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
         <header>
-          <h3>Registrar pagamento</h3>
-          <button class="close-x" id="btnClosePay" aria-label="Fechar">×</button>
+          <h3>Novo pagamento</h3>
+          <button class="close-x" id="btnClosePay" type="button" aria-label="Fechar">×</button>
         </header>
 
-        <div class="body">
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="payProfessional">Profissional</label>
-              <select id="payProfessional"></select>
-            </div>
-            <div class="field">
-              <label for="payLinkAppt">Vincular a atendimento</label>
-              <select id="payLinkAppt">
-                <option value="">Nenhum</option>
-              </select>
-            </div>
-          </div>
+        <form id="payForm" autocomplete="on">
+          <div class="body">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
+              <div>
+                <label class="label" for="payProfessional">Profissional</label>
+                <select class="input" id="payProfessional"></select>
+              </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="payAmount">Valor (R$)</label>
-              <input id="payAmount" type="number" min="0" step="0.01" placeholder="0.00"/>
+              <div>
+                <label class="label" for="payLinkAppt">Vincular a atendimento</label>
+                <select class="input" id="payLinkAppt"></select>
+              </div>
             </div>
-            <div class="field">
-              <label for="payDate">Data/hora</label>
-              <input id="payDate" type="datetime-local"/>
-            </div>
-          </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="payStatus">Status do pagamento</label>
-              <select id="payStatus">
-                <option value="PAID">✅ Pago</option>
-                <option value="PENDING">⏳ Pendente</option>
-                <option value="PARTIAL">📊 Parcial</option>
-                <option value="FREE">🎁 Isento</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="payMethod">Forma de pagamento</label>
-              <select id="payMethod">
-                <option value="PIX">📱 Pix</option>
-                <option value="CARD">💳 Cartão</option>
-                <option value="CASH">💵 Dinheiro</option>
-                <option value="TRANSFER">🏦 Transferência</option>
-                <option value="OTHER">➕ Outros</option>
-              </select>
-            </div>
-          </div>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+              <div>
+                <label class="label" for="payAmount">Valor</label>
+                <input class="input" id="payAmount" type="number" step="0.01" placeholder="Ex.: 120.00">
+              </div>
 
-          <!-- Seção específica para cartão -->
-          <div id="cardBox" style="display:none; margin-top: 12px; padding-top: 12px; border-top: 1.5px dashed var(--border);">
-            <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--muted);">💳 Detalhes do cartão</h4>
-            
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-              <div class="field">
-                <label for="cardType">Tipo de cartão</label>
-                <select id="cardType">
-                  <option value="CREDIT">Crédito</option>
-                  <option value="DEBIT">Débito</option>
+              <div>
+                <label class="label" for="payDate">Data/hora</label>
+                <input class="input" id="payDate" type="datetime-local">
+              </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+              <div>
+                <label class="label" for="payStatus">Status</label>
+                <select class="input" id="payStatus">
+                  <option value="PENDING">Pendente</option>
+                  <option value="PAID">Pago</option>
+                  <option value="PARTIAL">Parcial</option>
+                  <option value="FREE">Isento</option>
                 </select>
               </div>
-              <div class="field">
-                <label for="cardBrand">Bandeira</label>
-                <select id="cardBrand">
-                  <option value="VISA">Visa</option>
-                  <option value="MASTERCARD">Mastercard</option>
-                  <option value="ELO">Elo</option>
-                  <option value="AMEX">Amex</option>
-                  <option value="HIPERCARD">Hipercard</option>
-                  <option value="OTHER">Outros</option>
+
+              <div>
+                <label class="label" for="payMethod">Método</label>
+                <select class="input" id="payMethod">
+                  <option value="PIX">Pix</option>
+                  <option value="CARD">Cartão</option>
+                  <option value="CASH">Dinheiro</option>
+                  <option value="TRANSFER">Transferência</option>
+                  <option value="OTHER">Outro</option>
                 </select>
               </div>
             </div>
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-              <div class="field">
-                <label for="cardInstallments">Parcelas</label>
-                <select id="cardInstallments"></select>
-              </div>
-              <div class="field">
-                <label for="cardInstallmentValue">Valor por parcela</label>
-                <input id="cardInstallmentValue" disabled />
+            <div style="margin-top:12px;">
+              <label class="label" for="payNote">Observação</label>
+              <textarea class="input" id="payNote" rows="4" placeholder="Opcional..."></textarea>
+            </div>
+
+            <!-- Cartão (opcional) -->
+            <div id="cardBox" style="display:none; margin-top:14px;">
+              <div class="card" style="padding:12px;">
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
+                  <div>
+                    <label class="label" for="cardType">Tipo</label>
+                    <select class="input" id="cardType">
+                      <option value="CREDIT">Crédito</option>
+                      <option value="DEBIT">Débito</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="label" for="cardBrand">Bandeira</label>
+                    <select class="input" id="cardBrand">
+                      <option value="VISA">Visa</option>
+                      <option value="MASTERCARD">Mastercard</option>
+                      <option value="ELO">Elo</option>
+                      <option value="AMEX">Amex</option>
+                      <option value="OTHER">Outra</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+                  <div>
+                    <label class="label" for="cardInstallments">Parcelas</label>
+                    <select class="input" id="cardInstallments"></select>
+                  </div>
+                  <div>
+                    <label class="label" for="cardInstallmentValue">Valor parcela (auto)</label>
+                    <input class="input" id="cardInstallmentValue" readonly>
+                  </div>
+                </div>
+
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+                  <div>
+                    <label class="label" for="cardAuthorization">NSU/Autorização</label>
+                    <input class="input" id="cardAuthorization" placeholder="Opcional">
+                  </div>
+                  <div>
+                    <label class="label" for="cardFee">Taxa (%)</label>
+                    <input class="input" id="cardFee" type="number" step="0.01" placeholder="Ex.: 3.20">
+                  </div>
+                </div>
+
+                <div id="cardNetInfo" class="empty" style="margin-top:10px;"></div>
               </div>
             </div>
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-              <div class="field">
-                <label for="cardAuthorization">Autorização/NSU (opcional)</label>
-                <input id="cardAuthorization" placeholder="Ex.: 123456"/>
-              </div>
-              <div class="field">
-                <label for="cardFee">Taxa % (opcional)</label>
-                <input id="cardFee" type="number" min="0" step="0.01" placeholder="Ex.: 3.2"/>
-              </div>
+          </div>
+
+          <footer>
+            <div class="actions" style="justify-content:flex-start;">
+              <button class="btn danger" id="btnDeletePay" type="button" style="display:none;">🗑 Excluir</button>
             </div>
-
-            <div class="empty" id="cardNetInfo" style="margin-top:12px;"></div>
-          </div>
-
-          <div class="field">
-            <label for="payNote">Observações sobre o pagamento</label>
-            <textarea 
-              id="payNote" 
-              placeholder="Ex.: pago na recepção, desconto aplicado, pacote de sessões, etc."
-              style="min-height: 80px;"
-            ></textarea>
-          </div>
-        </div>
-
-        <footer>
-          <div class="actions" style="justify-content:flex-start;">
-            <button class="btn danger" id="btnDeletePay" style="display:none;">🗑️ Excluir</button>
-          </div>
-          <div class="actions">
-            <button class="btn" id="btnCancelPay">Cancelar</button>
-            <button class="btn primary" id="btnSavePay">💾 Salvar pagamento</button>
-          </div>
-        </footer>
+            <div class="actions">
+              <button class="btn" id="btnCancelPay" type="button">Cancelar</button>
+              <button class="btn primary" id="btnSavePay" type="submit">💾 Salvar pagamento</button>
+            </div>
+          </footer>
+        </form>
       </div>
     </div>
 
     <!-- ========== MODAL: EDITAR PACIENTE ========== -->
-    <div class="modal-backdrop" id="editBackdrop" role="dialog" aria-modal="true">
-      <div class="modal">
+    <div class="modal-backdrop" id="editBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
         <header>
-          <h3>Editar dados do paciente</h3>
-          <button class="close-x" id="btnCloseEdit" aria-label="Fechar">×</button>
+          <h3>Editar paciente</h3>
+          <button class="close-x" id="btnCloseEdit" type="button" aria-label="Fechar">×</button>
         </header>
 
-        <div class="body">
-          <div class="field">
-            <label for="eName">Nome completo</label>
-            <input id="eName" type="text" autocomplete="name"/>
-          </div>
-
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="eCpf">CPF</label>
-              <input id="eCpf" type="text"/>
+        <form id="editForm" autocomplete="on">
+          <div class="body">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
+              <div>
+                <label class="label" for="eName">Nome</label>
+                <input class="input" id="eName" placeholder="Nome completo">
+              </div>
+              <div>
+                <label class="label" for="eCpf">CPF</label>
+                <input class="input" id="eCpf" placeholder="000.000.000-00">
+              </div>
             </div>
-            <div class="field">
-              <label for="eColor">Cor padrão</label>
-              <select id="eColor">
-                <option value="#457B9D">🔵 Azul</option>
-                <option value="#2A9D8F">🟢 Verde</option>
-                <option value="#9B5DE5">🟣 Roxo</option>
-                <option value="#F4A261">🟠 Laranja</option>
-                <option value="#6C757D">⚫ Cinza</option>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+              <div>
+                <label class="label" for="eEmail">E-mail</label>
+                <input class="input" id="eEmail" type="email" placeholder="email@exemplo.com">
+              </div>
+              <div>
+                <label class="label" for="ePhone">Telefone</label>
+                <input class="input" id="ePhone" placeholder="(00) 00000-0000">
+              </div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label class="label" for="eAddress">Endereço</label>
+              <input class="input" id="eAddress" placeholder="Rua, número, bairro, cidade - UF">
+            </div>
+
+            <div style="margin-top:12px;">
+              <label class="label" for="eColor">Cor padrão</label>
+              <select class="input" id="eColor">
+                <option value="#457B9D">Azul</option>
+                <option value="#2A9D8F">Verde</option>
+                <option value="#9B5DE5">Roxo</option>
+                <option value="#F4A261">Laranja</option>
+                <option value="#6C757D">Cinza</option>
               </select>
             </div>
           </div>
 
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-            <div class="field">
-              <label for="eEmail">E-mail</label>
-              <input id="eEmail" type="email" autocomplete="email"/>
+          <footer>
+            <div class="actions">
+              <button class="btn" id="btnCancelEdit" type="button">Cancelar</button>
+              <button class="btn primary" id="btnSaveEdit" type="submit">Salvar</button>
             </div>
-            <div class="field">
-              <label for="ePhone">Telefone</label>
-              <input id="ePhone" type="tel" autocomplete="tel"/>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="eAddress">Endereço completo</label>
-            <input id="eAddress" type="text" autocomplete="street-address"/>
-          </div>
-        </div>
-
-        <footer>
-          <div class="actions">
-            <button class="btn" id="btnCancelEdit">Cancelar</button>
-            <button class="btn primary" id="btnSaveEdit">💾 Salvar alterações</button>
-          </div>
-        </footer>
+          </footer>
+        </form>
       </div>
     </div>
+
   </main>
 
-  <!-- ========== SCRIPTS ========== -->
-
-<!-- Supabase CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- Configuração -->
-<script src="assets/css/js/supabase-config.js"></script>
-
-<!-- API -->
-<script src="assets/css/js/supabase-api.js"></script>
-
-<!-- Script da página -->
-<script src="assets/css/js/paciente.js"></script>
-<script src="assets/css/js/auth.js"></script>
+  <!-- Scripts (ordem correta) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/css/js/supabase-config.js"></script>
+  <script src="assets/css/js/realtime.js"></script>
+  <script src="assets/css/js/supabase-api.js"></script>
+  <script src="assets/css/js/auth.js"></script>
+  <script src="assets/css/js/paciente.js"></script>
 </body>
 </html>

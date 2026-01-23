@@ -1,13 +1,17 @@
 /**
  * Cornélius - Paciente (compatível com paciente.html atual)
- * Tabs: Histórico, Financeiro, Config. Financeira
+ * Tabs: Histórico, Agendamentos, Financeiro, Config. Financeira
  * Modais: Anotação, Pagamento, Editar Paciente
+ * - Enter para salvar via <form> nos modais
+ * - Ctrl+Enter em campos de texto longo
+ * - Corrige edição de anotação/pagamento aguardando selects preencherem
+ * - NOVO: Filtra "Vincular a atendimento" pela profissional selecionada (somente no modal de anotação)
  */
 (function () {
   "use strict";
 
-if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
-
+  // Proteção de acesso (login)
+  if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
 
   const C = window.Cornelius;
 
@@ -47,7 +51,6 @@ if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
   }
 
   function parseDateTimeLocal(value) {
-    // value = "YYYY-MM-DDTHH:mm"
     if (!value) return null;
     const d = new Date(value);
     if (isNaN(d.getTime())) return null;
@@ -84,40 +87,33 @@ if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
   // -----------------------------
   // DOM (conforme paciente.html)
   // -----------------------------
-  // Header / ações
   const elTitle = $("title");
   const elSubtitle = $("subtitle");
   const btnSchedule = $("btnSchedule");
   const btnEdit = $("btnEdit");
 
-  // Sidebar
   const colorDot = $("colorDot");
   const patientFields = $("patientFields");
 
-  // Tabs e panels
   const tabHistory = $("tabHistory");
+  const tabAppointments = $("tabAppointments");
   const tabFinance = $("tabFinance");
   const tabFinanceSettings = $("tabFinanceSettings");
 
   const panelHistory = $("panelHistory");
+  const panelAppointments = $("panelAppointments");
   const panelFinance = $("panelFinance");
   const panelFinanceSettings = $("panelFinanceSettings");
 
-  // NOVO: Agendamentos
-const tabAppointments = $("tabAppointments");
-const panelAppointments = $("panelAppointments");
+  const apptsUpcomingList = $("apptsUpcomingList");
+  const apptsPastList = $("apptsPastList");
+  const apptsUpcomingEmpty = $("apptsUpcomingEmpty");
+  const apptsPastEmpty = $("apptsPastEmpty");
 
-const apptsUpcomingList = $("apptsUpcomingList");
-const apptsPastList = $("apptsPastList");
-const apptsUpcomingEmpty = $("apptsUpcomingEmpty");
-const apptsPastEmpty = $("apptsPastEmpty");
-
-  // Histórico
   const btnAddNote = $("btnAddNote");
   const notesList = $("notesList");
   const notesEmpty = $("notesEmpty");
 
-  // Financeiro
   const sumConsultation = $("sumConsultation");
   const sumPaid = $("sumPaid");
   const sumPending = $("sumPending");
@@ -125,7 +121,6 @@ const apptsPastEmpty = $("apptsPastEmpty");
   const paymentsList = $("paymentsList");
   const paymentsEmpty = $("paymentsEmpty");
 
-  // Config Financeira
   const cfgConsultationValue = $("cfgConsultationValue");
   const cfgFinancialNote = $("cfgFinancialNote");
   const btnSaveFinanceSettings = $("btnSaveFinanceSettings");
@@ -180,6 +175,11 @@ const apptsPastEmpty = $("apptsPastEmpty");
   const eAddress = $("eAddress");
   const eColor = $("eColor");
 
+  // Forms (para Enter)
+  const editForm = $("editForm");
+  const noteForm = $("noteForm");
+  const payForm = $("payForm");
+
   // -----------------------------
   // Estado
   // -----------------------------
@@ -189,35 +189,36 @@ const apptsPastEmpty = $("apptsPastEmpty");
   let editingNoteId = null;
   let editingPayId = null;
 
+  // Cache de agendamentos do paciente (para filtrar vínculo no modal de anotação)
+  let apptCacheForPatient = null;
+
   // -----------------------------
   // Tabs
   // -----------------------------
   function setTab(tab) {
     currentTab = tab;
 
-    // visual: usa .primary no HTML
-    [tabHistory, tabFinance, tabFinanceSettings, tabAppointments].forEach((b) => b && b.classList.remove("primary"));
+    [tabHistory, tabAppointments, tabFinance, tabFinanceSettings].forEach((b) => b && b.classList.remove("primary"));
     if (tab === "history" && tabHistory) tabHistory.classList.add("primary");
+    if (tab === "appointments" && tabAppointments) tabAppointments.classList.add("primary");
     if (tab === "finance" && tabFinance) tabFinance.classList.add("primary");
     if (tab === "financeSettings" && tabFinanceSettings) tabFinanceSettings.classList.add("primary");
-   if (tab === "appointments" && tabAppointments) tabAppointments.classList.add("primary");
 
     if (panelHistory) panelHistory.style.display = tab === "history" ? "block" : "none";
+    if (panelAppointments) panelAppointments.style.display = tab === "appointments" ? "block" : "none";
     if (panelFinance) panelFinance.style.display = tab === "finance" ? "block" : "none";
     if (panelFinanceSettings) panelFinanceSettings.style.display = tab === "financeSettings" ? "block" : "none";
-if (panelAppointments) panelAppointments.style.display = tab === "appointments" ? "block" : "none";
 
-    // carregar ao trocar
     if (tab === "history") loadNotes();
+    if (tab === "appointments") loadPatientAppointments();
     if (tab === "finance") loadPaymentsAndSummary();
     if (tab === "financeSettings") loadFinanceSettings();
-    if (tab === "appointments") loadPatientAppointments();
   }
 
   safeOn(tabHistory, "click", () => setTab("history"));
+  safeOn(tabAppointments, "click", () => setTab("appointments"));
   safeOn(tabFinance, "click", () => setTab("finance"));
   safeOn(tabFinanceSettings, "click", () => setTab("financeSettings"));
-safeOn(tabAppointments, "click", () => setTab("appointments"));
 
   // -----------------------------
   // Paciente: carregar e render
@@ -250,10 +251,8 @@ safeOn(tabAppointments, "click", () => setTab("appointments"));
     if (elTitle) elTitle.textContent = name;
     if (elSubtitle) elSubtitle.textContent = "Ficha completa do paciente.";
 
-    // cor
     if (colorDot) colorDot.style.background = currentPatient?.color || "#2A9D8F";
 
-    // lista de campos
     if (patientFields) {
       const items = [
         { label: "Nome", value: currentPatient?.name || "—" },
@@ -281,18 +280,11 @@ safeOn(tabAppointments, "click", () => setTab("appointments"));
   // -----------------------------
   // Ações topo
   // -----------------------------
-safeOn(btnSchedule, "click", () => {
-  const pid = encodeURIComponent(patientId);
-  const pname = encodeURIComponent(currentPatient?.name || "");
-  window.location.href = `agenda.html?new=1&patient=${pid}&patient_name=${pname}`;
-});
-
-safeOn(btnGoAgenda, "click", () => {
-  window.location.href = `agenda.html`;
-});
-
-
-
+  safeOn(btnSchedule, "click", () => {
+    const pid = encodeURIComponent(patientId);
+    const pname = encodeURIComponent(currentPatient?.name || "");
+    window.location.href = `agenda.html?new=1&patient=${pid}&patient_name=${pname}`;
+  });
 
   safeOn(btnEdit, "click", () => openEditPatientModal());
 
@@ -352,16 +344,14 @@ safeOn(btnGoAgenda, "click", () => {
   safeOn(btnSaveEdit, "click", saveEditPatientModal);
 
   // -----------------------------
-  // Profissionais e atendimentos (opcionais)
+  // Profissionais e atendimentos (modais)
   // -----------------------------
   async function fillProfessionals(selectEl) {
     if (!selectEl) return;
     selectEl.innerHTML = `<option value="">—</option>`;
 
-    // Tenta funções possíveis, sem quebrar caso não existam
     const candidates = ["getProfessionals", "listProfessionals", "getAllProfessionals"];
     const fnName = candidates.find((n) => C && typeof C[n] === "function");
-
     if (!fnName) return;
 
     try {
@@ -370,110 +360,120 @@ safeOn(btnGoAgenda, "click", () => {
 
       selectEl.innerHTML =
         `<option value="">—</option>` +
-        list
-          .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || "Profissional")}</option>`)
-          .join("");
+        list.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || "Profissional")}</option>`).join("");
     } catch (e) {
       console.warn("Não foi possível carregar profissionais:", e);
     }
   }
 
-  async function fillAppointments(selectEl) {
+  async function getAppointmentsCache() {
+    if (Array.isArray(apptCacheForPatient)) return apptCacheForPatient;
+
+    const candidates = ["getAppointmentsByPatient", "listAppointmentsByPatient", "getAppointmentsForPatient"];
+    const fnName = candidates.find((n) => C && typeof C[n] === "function");
+    if (!fnName) {
+      apptCacheForPatient = [];
+      return apptCacheForPatient;
+    }
+
+    try {
+      const list = await C[fnName](patientId);
+      apptCacheForPatient = Array.isArray(list) ? list : [];
+    } catch (e) {
+      console.warn("Não foi possível carregar atendimentos:", e);
+      apptCacheForPatient = [];
+    }
+    return apptCacheForPatient;
+  }
+
+  async function fillAppointments(selectEl, professionalId = "") {
     if (!selectEl) return;
 
     // mantém sempre opção "Nenhum"
     selectEl.innerHTML = `<option value="">Nenhum</option>`;
 
-    const candidates = ["getAppointmentsByPatient", "listAppointmentsByPatient", "getAppointmentsForPatient"];
-    const fnName = candidates.find((n) => C && typeof C[n] === "function");
-    if (!fnName) return;
+    const list = await getAppointmentsCache();
+    if (!Array.isArray(list) || !list.length) return;
 
-    try {
-      const list = await C[fnName](patientId);
-      if (!Array.isArray(list) || !list.length) return;
+    const pid = (professionalId || "").trim();
 
-      list.forEach((a) => {
-        const when = a.start_time || a.date || a.when || a.created_at;
-        const label = when ? new Date(when).toLocaleString("pt-BR") : "Atendimento";
-        const opt = document.createElement("option");
-        opt.value = a.id;
-        opt.textContent = label;
-        selectEl.appendChild(opt);
-      });
-    } catch (e) {
-      console.warn("Não foi possível carregar atendimentos:", e);
-    }
+    const filtered = pid
+      ? list.filter((a) => String(a.professional_id || "") === String(pid))
+      : list;
+
+    filtered.forEach((a) => {
+      const when = a.start_time || a.date || a.when || a.created_at;
+      const label = when ? new Date(when).toLocaleString("pt-BR") : "Atendimento";
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = label;
+      selectEl.appendChild(opt);
+    });
   }
 
   // -----------------------------
-// AGENDAMENTOS (na ficha do paciente)
-// -----------------------------
-async function loadPatientAppointments() {
-  try {
-    const candidates = ["getAppointmentsByPatient", "listAppointmentsByPatient", "getAppointmentsForPatient"];
-    const fnName = candidates.find((n) => C && typeof C[n] === "function");
+  // AGENDAMENTOS (na ficha do paciente)
+  // -----------------------------
+  async function loadPatientAppointments() {
+    try {
+      const candidates = ["getAppointmentsByPatient", "listAppointmentsByPatient", "getAppointmentsForPatient"];
+      const fnName = candidates.find((n) => C && typeof C[n] === "function");
 
-    if (!fnName) {
-      console.error("Nenhuma função de agendamentos disponível no supabase-api.js");
-      renderApptList(apptsUpcomingList, apptsUpcomingEmpty, [], true);
-      renderApptList(apptsPastList, apptsPastEmpty, [], false);
+      if (!fnName) {
+        console.error("Nenhuma função de agendamentos disponível no supabase-api.js");
+        renderApptList(apptsUpcomingList, apptsUpcomingEmpty, [], true);
+        renderApptList(apptsPastList, apptsPastEmpty, [], false);
+        return;
+      }
+
+      const list = await C[fnName](patientId);
+      const now = Date.now();
+
+      const upcoming = [];
+      const past = [];
+
+      (list || []).forEach((a) => {
+        const start = new Date(a.start_time).getTime();
+        if (!isNaN(start) && start >= now) upcoming.push(a);
+        else past.push(a);
+      });
+
+      upcoming.sort((x, y) => new Date(x.start_time) - new Date(y.start_time));
+      past.sort((x, y) => new Date(y.start_time) - new Date(x.start_time));
+
+      renderApptList(apptsUpcomingList, apptsUpcomingEmpty, upcoming, true);
+      renderApptList(apptsPastList, apptsPastEmpty, past, false);
+    } catch (err) {
+      console.error("Erro ao carregar agendamentos do paciente:", err);
+      toast("❌ Erro ao carregar agendamentos");
+    }
+  }
+
+  function renderApptList(listEl, emptyEl, items, isUpcoming) {
+    if (!listEl || !emptyEl) return;
+
+    if (!items || !items.length) {
+      listEl.innerHTML = "";
+      emptyEl.style.display = "block";
       return;
     }
 
-    const list = await C[fnName](patientId);
-    const now = Date.now();
+    emptyEl.style.display = "none";
 
-    const upcoming = [];
-    const past = [];
+    listEl.innerHTML = items
+      .map((a) => {
+        const start = new Date(a.start_time);
+        const end = new Date(a.end_time);
 
-    (list || []).forEach((a) => {
-      const start = new Date(a.start_time).getTime();
-      if (!isNaN(start) && start >= now) upcoming.push(a);
-      else past.push(a);
-    });
+        const when = start.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+        const to = end.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-    // Próximos: mais próximo primeiro
-    upcoming.sort((x, y) => new Date(x.start_time) - new Date(y.start_time));
-    // Passados: mais recente primeiro
-    past.sort((x, y) => new Date(y.start_time) - new Date(x.start_time));
+        const profName = a.professional?.name || a.professional_name || "—";
+        const room = a.room ? `Sala: ${escapeHtml(a.room)}` : "";
+        const notes = a.notes ? escapeHtml(a.notes) : "";
+        const color = a.color || "#2A9D8F";
 
-    renderApptList(apptsUpcomingList, apptsUpcomingEmpty, upcoming, true);
-    renderApptList(apptsPastList, apptsPastEmpty, past, false);
-  } catch (err) {
-    console.error("Erro ao carregar agendamentos do paciente:", err);
-    toast("❌ Erro ao carregar agendamentos");
-  }
-}
-
-function renderApptList(listEl, emptyEl, items, isUpcoming) {
-  if (!listEl || !emptyEl) return;
-
-  if (!items || !items.length) {
-    listEl.innerHTML = "";
-    emptyEl.style.display = "block";
-    return;
-  }
-
-  emptyEl.style.display = "none";
-
-  listEl.innerHTML = items
-    .map((a) => {
-      const start = new Date(a.start_time);
-      const end = new Date(a.end_time);
-
-      const when = start.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-      const to = end.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-      const profName =
-        a.professional?.name ||
-        a.professional_name ||
-        "—";
-
-      const room = a.room ? `Sala: ${escapeHtml(a.room)}` : "";
-      const notes = a.notes ? escapeHtml(a.notes) : "";
-      const color = a.color || "#2A9D8F";
-
-      return `
+        return `
         <div class="item" style="align-items:flex-start;">
           <div class="meta">
             <strong>${escapeHtml(when)} – ${escapeHtml(to)}</strong>
@@ -489,9 +489,9 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
           </div>
         </div>
       `;
-    })
-    .join("");
-}
+      })
+      .join("");
+  }
 
   // -----------------------------
   // HISTÓRICO (Anotações)
@@ -548,16 +548,20 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
     }
   }
 
-  function openNewNote() {
+  async function openNewNote() {
     editingNoteId = null;
+
+    const nt = noteBackdrop ? noteBackdrop.querySelector("h3") : null;
+    if (nt) nt.textContent = "Nova anotação";
 
     if (noteText) noteText.value = "";
     if (noteWhen) noteWhen.value = fmtDateTimeLocal(new Date().toISOString());
 
     if (btnDeleteNote) btnDeleteNote.style.display = "none";
 
-    fillProfessionals(noteProfessional);
-    fillAppointments(noteLinkAppt);
+    await fillProfessionals(noteProfessional);
+    await getAppointmentsCache();
+    await fillAppointments(noteLinkAppt, noteProfessional?.value || "");
 
     show(noteBackdrop);
   }
@@ -576,12 +580,24 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
 
       editingNoteId = noteId;
 
-      fillProfessionals(noteProfessional);
-      fillAppointments(noteLinkAppt);
+      const nt = noteBackdrop ? noteBackdrop.querySelector("h3") : null;
+      if (nt) nt.textContent = "Editar anotação";
 
-      // tenta setar valores existentes
-      if (noteProfessional && note.professional_id) noteProfessional.value = note.professional_id;
-      if (noteLinkAppt && note.appointment_id) noteLinkAppt.value = note.appointment_id;
+      // IMPORTANTÍSSIMO: aguarda os selects preencherem antes de setar value
+      await fillProfessionals(noteProfessional);
+      await getAppointmentsCache();
+
+      // 1) seta o profissional primeiro (se existir)
+      if (noteProfessional) noteProfessional.value = note.professional_id || "";
+
+      // 2) preenche atendimentos filtrando pela profissional selecionada
+      await fillAppointments(noteLinkAppt, noteProfessional?.value || "");
+
+      // 3) tenta selecionar o atendimento vinculado (se existir dentro do filtro)
+      if (noteLinkAppt) {
+        noteLinkAppt.value = note.appointment_id || "";
+        if (note.appointment_id && noteLinkAppt.value !== String(note.appointment_id)) noteLinkAppt.value = "";
+      }
 
       if (noteWhen) noteWhen.value = fmtDateTimeLocal(note.note_date);
       if (noteText) noteText.value = note.content || "";
@@ -666,6 +682,18 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
   safeOn(btnSaveNote, "click", saveNote);
   safeOn(btnDeleteNote, "click", deleteNote);
 
+  // Filtra "Vincular a atendimento" pela profissional selecionada (apenas no modal de anotação)
+  safeOn(noteProfessional, "change", async () => {
+    const current = noteLinkAppt?.value || "";
+    await fillAppointments(noteLinkAppt, noteProfessional?.value || "");
+
+    // tenta manter a seleção anterior; se não existir no filtro, volta para "Nenhum"
+    if (noteLinkAppt && current) {
+      noteLinkAppt.value = current;
+      if (noteLinkAppt.value !== current) noteLinkAppt.value = "";
+    }
+  });
+
   // -----------------------------
   // FINANCEIRO (Pagamentos + resumo)
   // -----------------------------
@@ -709,26 +737,20 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
 
   async function loadPaymentsAndSummary() {
     try {
-      // resumo
       if (C && typeof C.calcFinancialSummary === "function") {
         const summary = await C.calcFinancialSummary(patientId);
 
-        // Se sua API retornar { total, paid, pending } isso preenche.
-        // Se não retornar, mantém "-"
         if (sumPaid) sumPaid.textContent = summary?.paid != null && C.moneyBR ? C.moneyBR(summary.paid) : (summary?.paid ?? "-");
         if (sumPending) sumPending.textContent = summary?.pending != null && C.moneyBR ? C.moneyBR(summary.pending) : (summary?.pending ?? "-");
 
-        // "Valor da consulta" vem da config do paciente (se existir) OU deixa "-"
         const consult = summary?.consultation_value ?? currentPatient?.consultation_value ?? currentPatient?.consultationValue ?? null;
         if (sumConsultation) sumConsultation.textContent = consult != null && C.moneyBR ? C.moneyBR(consult) : (consult ?? "-");
       } else {
-        // fallback
         if (sumConsultation) sumConsultation.textContent = "-";
         if (sumPaid) sumPaid.textContent = "-";
         if (sumPending) sumPending.textContent = "-";
       }
 
-      // lista pagamentos
       if (!C || typeof C.getPaymentsByPatient !== "function") {
         console.error("Cornelius.getPaymentsByPatient não existe.");
         if (paymentsList) paymentsList.innerHTML = "";
@@ -805,7 +827,6 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
     fillAppointments(payLinkAppt);
 
     if (payAmount) {
-      // pré-preenche com config se existir
       const consult = currentPatient?.consultation_value ?? currentPatient?.consultationValue ?? null;
       payAmount.value = consult != null ? String(consult) : "";
     }
@@ -817,7 +838,6 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
 
     if (btnDeletePay) btnDeletePay.style.display = "none";
 
-    // cartão default
     if (cardType) cardType.value = "CREDIT";
     if (cardBrand) cardBrand.value = "VISA";
     if (cardAuthorization) cardAuthorization.value = "";
@@ -844,11 +864,14 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
 
       editingPayId = paymentId;
 
-      fillProfessionals(payProfessional);
-      fillAppointments(payLinkAppt);
+      const pt = payBackdrop ? payBackdrop.querySelector("h3") : null;
+      if (pt) pt.textContent = "Editar pagamento";
 
-      if (payProfessional && p.professional_id) payProfessional.value = p.professional_id;
-      if (payLinkAppt && p.appointment_id) payLinkAppt.value = p.appointment_id;
+      await fillProfessionals(payProfessional);
+      await fillAppointments(payLinkAppt);
+
+      if (payProfessional) payProfessional.value = p.professional_id || "";
+      if (payLinkAppt) payLinkAppt.value = p.appointment_id || "";
 
       if (payAmount) payAmount.value = p.amount != null ? String(p.amount) : "";
       if (payDate) payDate.value = fmtDateTimeLocal(p.payment_date);
@@ -889,7 +912,6 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
       const method = payMethod?.value || "PIX";
       let note = (payNote?.value || "").trim();
 
-      // Se cartão, adiciona um resumo no note (para não depender de colunas extras)
       if (method === "CARD") {
         const inst = cardInstallments?.value || "1";
         const fee = cardFee?.value || "";
@@ -975,7 +997,6 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
   }
 
   async function loadFinanceSettings() {
-    // Sem quebrar se ainda não existir no banco
     const v = patientConsultationValueFromModel();
     const n = patientFinancialNoteFromModel();
 
@@ -994,7 +1015,6 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
       const val = cfgConsultationValue?.value ? parseFloat(cfgConsultationValue.value) : null;
       const note = (cfgFinancialNote?.value || "").trim();
 
-      // tenta salvar em colunas prováveis
       const updates = {
         consultation_value: val,
         financial_note: note
@@ -1012,10 +1032,56 @@ function renderApptList(listEl, emptyEl, items, isUpcoming) {
   safeOn(btnSaveFinanceSettings, "click", saveFinanceSettings);
 
   // -----------------------------
+  // Enter para salvar via <form>
+  // -----------------------------
+  safeOn(editForm, "submit", (e) => {
+    e.preventDefault();
+    saveEditPatientModal();
+  });
+
+  safeOn(noteForm, "submit", (e) => {
+    e.preventDefault();
+    saveNote();
+  });
+
+  safeOn(payForm, "submit", (e) => {
+    e.preventDefault();
+    savePayment();
+  });
+
+  // Ctrl+Enter em textarea (anotação/pagamento)
+  safeOn(noteText, "keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") saveNote();
+  });
+  safeOn(payNote, "keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") savePayment();
+  });
+
+    // =============================================================================
+  // REALTIME (Global)
+  // =============================================================================
+  const RT = window.CorneliusRealtime;
+  if (RT) {
+    RT.on("patients:change", () => loadPatient());
+
+    RT.on("appointments:change", () => {
+      if (currentTab === "appointments") loadPatientAppointments();
+    });
+
+    RT.on("clinical_notes:change", () => {
+      if (currentTab === "history") loadNotes();
+    });
+
+    RT.on("payments:change", () => {
+      if (currentTab === "finance") loadPaymentsAndSummary();
+    });
+  }
+
+  // -----------------------------
   // Boot
   // -----------------------------
   (async function boot() {
     await loadPatient();
-    setTab("history"); // padrão
+    setTab("history");
   })();
 })();
