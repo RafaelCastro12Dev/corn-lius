@@ -187,13 +187,17 @@
   // OPERAÇÕES COM PACIENTES
   // ============================================================================
 
-  async function getAllPatients() {
+  async function getAllPatients(options = {}) {
+    const { includeInactive = false } = options || {};
     try {
-      const { data, error } = await sb
+      let q = sb
         .from("patients")
         .select("*")
         .order("name", { ascending: true });
-      
+
+      if (!includeInactive) q = q.eq("is_active", true);
+
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -281,22 +285,26 @@
     }
   }
 
-  async function searchPatients(query) {
+  async function searchPatients(query, options = {}) {
+    const { includeInactive = false } = options || {};
     try {
-      const q = normalize(query);
+      const qNorm = normalize(query);
       const cpfClean = cleanCPF(query);
-      
-      const { data, error } = await sb
+
+      let q = sb
         .from("patients")
         .select("*")
         .or(`name.ilike.%${query}%,cpf.eq.${cpfClean}`)
         .order("name", { ascending: true });
 
+      if (!includeInactive) q = q.eq("is_active", true);
+
+      const { data, error } = await q;
       if (error) throw error;
-      
+
       // Filtro adicional no cliente para busca mais precisa
-      return (data || []).filter(p => {
-        const nameMatch = normalize(p.name).includes(q);
+      return (data || []).filter((p) => {
+        const nameMatch = normalize(p.name).includes(qNorm);
         const cpfMatch = cleanCPF(p.cpf) === cpfClean;
         return nameMatch || cpfMatch;
       });
@@ -305,6 +313,69 @@
       return [];
     }
   }
+
+  // ===============================
+  // Pacientes: Inativar / Reativar / Excluir (seguro)
+  // ===============================
+  async function archivePatient(patientId) {
+    const { data, error } = await sb
+      .from("patients")
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq("id", patientId)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function restorePatient(patientId) {
+    const { data, error } = await sb
+      .from("patients")
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq("id", patientId)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function _existsRow(table, where) {
+    let q = sb.from(table).select("id", { count: "exact", head: true });
+    for (const [k, v] of Object.entries(where)) q = q.eq(k, v);
+    const { error, count } = await q;
+    if (error) {
+      // Se alguma tabela não existir, não quebra o fluxo.
+      const msg = String(error.message || "").toLowerCase();
+      if (msg.includes("does not exist") || msg.includes("relation") || msg.includes("not found")) return false;
+      throw error;
+    }
+    return (count || 0) > 0;
+  }
+
+  async function canDeletePatient(patientId) {
+    const checks = [
+      { table: "appointments", col: "patient_id", label: "agendamentos" },
+      { table: "clinical_notes", col: "patient_id", label: "notas clínicas" },
+      { table: "payments", col: "patient_id", label: "pagamentos" },
+      { table: "attestations", col: "patient_id", label: "atestados" },
+    ];
+
+    for (const c of checks) {
+      const has = await _existsRow(c.table, { [c.col]: patientId });
+      if (has) return { ok: false, reason: `Paciente possui ${c.label}. Use “Inativar”.` };
+    }
+    return { ok: true, reason: "" };
+  }
+
+ async function deletePatientPermanent(patientId) {
+  const { error } = await supabaseClient
+    .from("patients")
+    .delete()
+    .eq("id", patientId);
+
+  if (error) throw error;
+  return true;
+}
 
   // ============================================================================
   // OPERAÇÕES COM PROFISSIONAIS
@@ -915,63 +986,6 @@ async function getAttestationsByPatient(patientId) {
     }
   }
 
-  // ==============================
-// Vincular Auth (email) -> Professional (id)
-// ==============================
-async function getMyProfessional() {
-  const { data: { user }, error: userErr } = await sb.auth.getUser();
-  if (userErr) throw userErr;
-
-  const email = (user?.email || "").toLowerCase().trim();
-  if (!email) throw new Error("Usuário logado sem email no Auth.");
-
-  // Ajuste o nome da coluna se você usa outro campo.
-  const { data, error } = await sb
-    .from("professionals")
-    .select("*")
-    .ilike("email", email)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) throw new Error("Nenhum profissional encontrado com este email em professionals.");
-
-  return data; // contém data.id, data.name, etc.
-}
-
-async function getMyProfessionalId() {
-  const prof = await getMyProfessional();
-  return prof.id;
-}
-
-// ==============================
-// Agendamentos filtrados (range + professional)
-// ==============================
-async function getAppointmentsRange(startISO, endISO, professionalId = null) {
-  try {
-    let q = sb
-      .from("appointments")
-      .select(`
-        *,
-        patient:patients(*),
-        professional:professionals(*)
-      `)
-      .gte("start_time", startISO)
-      .lt("start_time", endISO)
-      .order("start_time", { ascending: true });
-
-    if (professionalId) {
-      q = q.eq("professional_id", professionalId);
-    }
-
-    const { data, error } = await q;
-    if (error) throw error;
-    return data || [];
-  } catch (err) {
-    console.error("❌ Erro ao buscar agendamentos (range):", err);
-    return [];
-  }
-}
-
   // ============================================================================
   // EXPORTAR API
   // ============================================================================
@@ -1008,6 +1022,11 @@ async function getAppointmentsRange(startISO, endISO, professionalId = null) {
     addPatient,
     updatePatient,
     searchPatients,
+    archivePatient,
+    restorePatient,
+    canDeletePatient,
+    deletePatientPermanent,
+
 
     // Profissionais
     getAllProfessionals,
@@ -1024,11 +1043,7 @@ async function getAppointmentsRange(startISO, endISO, professionalId = null) {
     deleteAppointment,
     getAppointmentsByPatient,
     getUpcomingAppointments,
-    getAppointmentsRange,
 
-// Auxiliares / vínculo
-  getMyProfessional,
-  getMyProfessionalId,
     // Anotações clínicas
     getClinicalNotesByPatient,
     addClinicalNote,

@@ -52,6 +52,11 @@
     return s?.user?.id || null;
   }
 
+  function getEmailFromStoredSession() {
+    const s = getStoredSession();
+    return (s?.user?.email || "").toString().trim().toLowerCase() || null;
+  }
+
   // =========================
   // Role handling
   // =========================
@@ -75,26 +80,74 @@
     localStorage.setItem(ROLE_KEY, r);
   }
 
-  async function fetchAndSetRole() {
+  // ✅ Fallback por email (whitelist) — mantém seu cenário atual
+  function roleFromEmail(email) {
+    const e = (email || "").toString().trim().toLowerCase();
+    const admins = new Set([
+      "clinicacornelius@gmail.com",
+      "ana_paulac.97@outlook.com",
+    ]);
+    return admins.has(e) ? "admin" : "professional";
+  }
+
+  /**
+   * Carrega role com prioridade:
+   * 1) user_roles (se existir e tiver registro)
+   * 2) fallback email whitelist
+   *
+   * @param {Object} opts
+   * @param {boolean} opts.force - se true, ignora cache e recalcula (IMPORTANTE no login)
+   */
+  async function fetchAndSetRole(opts) {
+    const force = !!opts?.force;
+
     if (!window.supabaseClient) throw new Error("Supabase não carregou");
 
     const userId = getUserIdFromStoredSession();
     if (!userId) throw new Error("Sessão sem user_id");
 
-    const cached = getRole();
-    if (cached) return cached;
+    const sessionEmail = getEmailFromStoredSession();
 
-    const { data, error } = await window.supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
+    // ✅ Se não for forçado, pode usar cache (rápido)
+    if (!force) {
+      const cached = getRole();
+      if (cached) return cached;
+    }
 
-    if (error) throw error;
+    // 1) tenta tabela user_roles (se existir)
+    try {
+      const { data, error } = await window.supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    const role = (data?.role || "professional").toString().trim().toLowerCase(); // default seguro
-    setRole(role);
-    return role;
+      // Se der erro de permissão / tabela não existir, cai no fallback
+      if (error) {
+        console.warn("⚠️ user_roles falhou, usando fallback por email:", error);
+        const fallbackRole = roleFromEmail(sessionEmail);
+        setRole(fallbackRole);
+        return fallbackRole;
+      }
+
+      // Se existe role na tabela, respeita
+      if (data?.role) {
+        const r = data.role.toString().trim().toLowerCase();
+        const finalRole = (r === "admin" || r === "professional") ? r : "professional";
+        setRole(finalRole);
+        return finalRole;
+      }
+
+      // Sem registro -> fallback por email
+      const fallbackRole = roleFromEmail(sessionEmail);
+      setRole(fallbackRole);
+      return fallbackRole;
+    } catch (e) {
+      console.warn("⚠️ Erro inesperado em user_roles, usando fallback por email:", e);
+      const fallbackRole = roleFromEmail(sessionEmail);
+      setRole(fallbackRole);
+      return fallbackRole;
+    }
   }
 
   // =========================
@@ -136,8 +189,8 @@
 
     if (error) throw error;
 
-    // Após login, carregar role e salvar
-    await fetchAndSetRole();
+    // ✅ IMPORTANTE: após login, FORÇA recalcular role (ignora cache velho)
+    await fetchAndSetRole({ force: true });
 
     return !!data?.session;
   }
@@ -156,7 +209,7 @@
     if (cached) return cached;
 
     try {
-      return await fetchAndSetRole();
+      return await fetchAndSetRole({ force: false });
     } catch (e) {
       console.warn("⚠️ Não foi possível carregar role:", e);
       return null;

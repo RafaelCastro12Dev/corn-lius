@@ -1104,11 +1104,8 @@ input[type="checkbox"] {
 
 /* =========================================================
    PATCH UI - Histórico + Profissionais
-   - Estiliza itens gerados como .list-item / .btn-icon
-   - Mantém o resto do tema intacto
    ========================================================= */
 
-/* Listas verticais com espaçamento consistente */
 #notesList,
 #paymentsList,
 #professionalsList,
@@ -1117,17 +1114,14 @@ input[type="checkbox"] {
   gap: 12px;
 }
 
-/* Card do item (para .list-item) */
 .list-item{
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
   padding: 14px 16px;
-
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-
   background: rgba(255,255,255,0.98);
   transition: all var(--transition-base);
 }
@@ -1139,13 +1133,11 @@ input[type="checkbox"] {
   background: rgba(255,255,255,1);
 }
 
-/* Conteúdo do item */
 .list-item-content{
   flex: 1;
   min-width: 0;
 }
 
-/* Título/linha principal do item */
 .list-item-title{
   font-size: var(--font-size-md);
   font-weight: 800;
@@ -1154,29 +1146,24 @@ input[type="checkbox"] {
   margin-bottom: 6px;
 }
 
-/* Texto secundário (data, email etc.) */
 .text-secondary{
   color: var(--muted);
 }
 
-/* Texto longo (ex.: anotação) com leitura melhor */
 .list-item-content .text-sm{
   font-size: var(--font-size-sm);
   line-height: 1.55;
   color: var(--text-light);
 }
 
-/* Botão ícone (editar etc.) */
 .btn-icon{
   flex: 0 0 auto;
   width: 38px;
   height: 38px;
   border-radius: 12px;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   border: 1.5px solid var(--border);
   background: rgba(255,255,255,0.95);
   cursor: pointer;
@@ -1195,7 +1182,6 @@ input[type="checkbox"] {
   box-shadow: none;
 }
 
-/* Badges (financeiro) */
 .badge{
   display: inline-flex;
   align-items: center;
@@ -1207,7 +1193,6 @@ input[type="checkbox"] {
   letter-spacing: 0.03em;
 }
 
-/* Estados vazios mais apresentáveis */
 #notesEmpty,
 #paymentsEmpty{
   padding: 14px 16px;
@@ -1216,12 +1201,12 @@ input[type="checkbox"] {
   background: rgba(255,255,255,0.75);
 }
 
-/* Pequeno polimento no botão de adicionar anotação/pagamento */
 #btnAddNote,
 #btnAddPayment{
   box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
+
 /* ============================
    Cornélius - FullCalendar Theme
    ============================ */
@@ -1231,7 +1216,6 @@ input[type="checkbox"] {
   --ce-soft: rgba(17, 24, 39, 0.04);
   --ce-text: #0f172a;
   --ce-muted: rgba(15, 23, 42, 0.72);
-
   border: 1px solid var(--ce-border);
   border-radius: 18px;
   background: #fff;
@@ -1239,7 +1223,6 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-/* Header */
 #calendar .fc-toolbar {
   padding: 14px 16px;
   margin: 0;
@@ -1253,7 +1236,6 @@ input[type="checkbox"] {
   color: var(--ce-text);
 }
 
-/* Buttons */
 #calendar .fc-button {
   border-radius: 999px !important;
   border: 1px solid var(--ce-border) !important;
@@ -1274,11 +1256,11 @@ input[type="checkbox"] {
   border-color: rgba(16, 185, 129, 0.35) !important;
 }
 
-/* Day headers */
 #calendar .fc-col-header-cell {
   background: #fff;
   border-bottom: 1px solid var(--ce-border);
 }
+
 #calendar .fc-col-header-cell-cushion {
   padding: 10px 6px;
   color: var(--ce-muted);
@@ -1288,7 +1270,6 @@ input[type="checkbox"] {
   font-size: 12px;
 }
 
-/* Time axis */
 #calendar .fc-timegrid-axis-cushion,
 #calendar .fc-timegrid-slot-label-cushion {
   color: rgba(15, 23, 42, 0.60);
@@ -1296,7 +1277,6 @@ input[type="checkbox"] {
   font-size: 12px;
 }
 
-/* Grid lines */
 #calendar .fc-scrollgrid,
 #calendar .fc-scrollgrid td,
 #calendar .fc-scrollgrid th {
@@ -1307,15 +1287,14 @@ input[type="checkbox"] {
   border-color: rgba(17, 24, 39, 0.06) !important;
 }
 
-/* “Now” line */
 #calendar .fc-timegrid-now-indicator-line {
   border-color: rgba(239, 68, 68, 0.8) !important;
 }
+
 #calendar .fc-timegrid-now-indicator-arrow {
   border-color: rgba(239, 68, 68, 0.8) !important;
 }
 
-/* Event base */
 #calendar .ce-event.fc-event {
   border-radius: 14px !important;
   border: 1px solid rgba(255,255,255,0.22) !important;
@@ -1327,7 +1306,6 @@ input[type="checkbox"] {
   padding: 8px 10px !important;
 }
 
-/* Event typography */
 #calendar .ce-event .ce-top {
   display: flex;
   align-items: center;
@@ -1359,16 +1337,302 @@ input[type="checkbox"] {
   word-break: break-word;
 }
 
-/* Hover feel */
 #calendar .ce-event {
   transition: transform .12s ease, box-shadow .12s ease;
 }
+
 #calendar .ce-event:hover {
   transform: translateY(-1px);
   box-shadow: 0 16px 34px rgba(0,0,0,0.14);
 }
 
-/* Reduce clutter on all-day row in week view */
 #calendar .fc-timegrid .fc-daygrid-body {
   display: none;
+}
+
+/* ============================
+   PÁGINA PACIENTE - TABS & DROPDOWN
+   ============================ */
+
+/* Tabs Desktop - Estilo melhorado */
+.patient-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+}
+
+.patient-tabs .btn {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  padding: 10px 16px;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.patient-tabs .btn:not(.primary) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.patient-tabs .btn:not(.primary):hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.patient-tabs .btn.primary {
+  background: linear-gradient(135deg, var(--mint), var(--mint-2));
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+  color: var(--accent-2);
+}
+
+.patient-tabs .btn.primary::after {
+  content: '';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.patient-manage-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Botão Gerenciar */
+.btn-ghost {
+  border: 1.5px solid rgba(16,42,38,0.18);
+  background: rgba(255,255,255,0.92);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 800;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-2);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-ghost:active {
+  transform: translateY(0);
+}
+
+/* Dropdown Gerenciar */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  min-width: 320px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+  padding: 10px;
+  z-index: 150;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-base);
+}
+
+.dropdown-menu[style*="display: block"],
+.dropdown-menu[style*="display:block"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  display: block !important;
+}
+
+.dropdown-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: block;
+}
+
+.dropdown-item small {
+  display: block;
+  margin-top: 5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.dropdown-item:hover {
+  background: rgba(191,243,208,0.35);
+  transform: translateX(4px);
+}
+
+.dropdown-item.danger {
+  color: #b91c1c;
+}
+
+.dropdown-item.danger:hover {
+  background: rgba(239,68,68,0.12);
+}
+
+.dropdown-sep {
+  height: 1px;
+  background: rgba(16,42,38,0.10);
+  margin: 10px 8px;
+  border-radius: 999px;
+}
+
+/* Actions home */
+.home-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-ghost.is-on {
+  background: rgba(191,243,208,0.60);
+  border-color: rgba(16,42,38,0.30);
+}
+
+/* ============================
+   GRID PÁGINA PACIENTE
+   ============================ */
+
+.paciente-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 18px;
+}
+
+/* Tablets - Grid vira coluna */
+@media (max-width: 980px) {
+  .paciente-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+}
+
+/* Mobile - Ajustes tabs e gerenciar */
+@media (max-width: 768px) {
+  .card {
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  /* Tabs com scroll horizontal suave */
+  .patient-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 12px;
+    gap: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  
+  .patient-tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .patient-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .patient-tabs::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 999px;
+  }
+  
+  .patient-tabs .btn {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+  
+  .patient-tabs .btn.primary::after {
+    bottom: -14px;
+    width: 30px;
+    height: 2px;
+  }
+  
+  /* Gerenciar vira linha inteira */
+  .patient-manage-wrap {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+    border-top: 1.5px dashed var(--border);
+    padding-top: 12px;
+  }
+  
+  .patient-manage-wrap .btn-ghost {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 18px;
+  }
+  
+  /* Dropdown mobile centralizado */
+  .dropdown-menu {
+    right: 0;
+    left: 0;
+    min-width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+}
+
+/* Mobile extra pequeno */
+@media (max-width: 420px) {
+  .patient-tabs .btn {
+    font-size: 10px;
+    padding: 7px 10px;
+  }
+  
+  .dropdown-menu {
+    min-width: calc(100vw - 40px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  
+  .dropdown-menu[style*="display: block"],
+  .dropdown-menu[style*="display:block"] {
+    transform: translateX(-50%) translateY(0) !important;
+  }
 }

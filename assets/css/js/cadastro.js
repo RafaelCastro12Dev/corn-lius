@@ -32,6 +32,7 @@ if (window.CorneliusAuth && !window.CorneliusAuth.requireRole("admin")) return;
         const patient = {
           name: document.getElementById("name").value.trim(),
           cpf: document.getElementById("cpf").value.trim(),
+          birth_date: document.getElementById("birthDate").value || null,
           email: document.getElementById("email").value.trim(),
           phone: document.getElementById("phone").value.trim(),
           address: document.getElementById("address").value.trim(),

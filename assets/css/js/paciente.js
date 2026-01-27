@@ -171,6 +171,7 @@
 
   const eName = $("eName");
   const eCpf = $("eCpf");
+  const eBirthDate = $("eBirthDate");
   const eEmail = $("eEmail");
   const ePhone = $("ePhone");
   const eAddress = $("eAddress");
@@ -258,6 +259,7 @@
       const items = [
         { label: "Nome", value: currentPatient?.name || "—" },
         { label: "CPF", value: currentPatient?.cpf ? (C.formatCPF ? C.formatCPF(currentPatient.cpf) : currentPatient.cpf) : "—" },
+        { label: "Nascimento", value: currentPatient?.birth_date ? new Date(currentPatient.birth_date).toLocaleDateString("pt-BR") : "—" },
         { label: "E-mail", value: currentPatient?.email || "—" },
         { label: "Telefone", value: currentPatient?.phone || "—" },
         { label: "Endereço", value: currentPatient?.address || "—" }
@@ -297,6 +299,7 @@
 
     if (eName) eName.value = currentPatient.name || "";
     if (eCpf) eCpf.value = currentPatient.cpf || "";
+    if (eBirthDate) eBirthDate.value = currentPatient.birth_date || "";
     if (eEmail) eEmail.value = currentPatient.email || "";
     if (ePhone) ePhone.value = currentPatient.phone || "";
     if (eAddress) eAddress.value = currentPatient.address || "";
@@ -320,6 +323,7 @@
       const updates = {
         name: (eName?.value || "").trim(),
         cpf: (eCpf?.value || "").trim(),
+        birth_date: eBirthDate?.value || null,
         email: (eEmail?.value || "").trim(),
         phone: (ePhone?.value || "").trim(),
         address: (eAddress?.value || "").trim(),
@@ -1077,6 +1081,144 @@
       if (currentTab === "finance") loadPaymentsAndSummary();
     });
   }
+
+  // ===============================
+// Gerenciar paciente (Admin only)
+// ===============================
+(function initPatientManage() {
+  const role = (localStorage.getItem("cornelius_role") || "").toLowerCase().trim();
+  const isAdmin = role === "admin";
+
+  const panel = document.getElementById("patientAdminPanel");
+  const btn = document.getElementById("btnManagePatient");
+  const menu = document.getElementById("patientManageMenu");
+
+  const btnArchive = document.getElementById("btnArchivePatient");
+  const btnRestore = document.getElementById("btnRestorePatient");
+  const btnDelete = document.getElementById("btnDeletePatient");
+
+  if (!panel || !btn || !menu) return;
+
+  if (!isAdmin) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+
+function getPatientIdSafe() {
+  return patientId;
+}
+
+
+  function closeMenu() { menu.style.display = "none"; }
+  function toggleMenu() { menu.style.display = (menu.style.display === "none" ? "block" : "none"); }
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) closeMenu();
+  });
+
+  // Ajusta quais itens aparecem baseado no status do paciente (is_active)
+  async function syncPatientStatusUI() {
+    try {
+      const id = getPatientIdSafe();
+      if (!id) return;
+
+      // Tenta buscar o paciente (se você já tem ele em memória, pode setar direto)
+      const { data, error } = await window.supabaseClient
+        .from("patients")
+        .select("id, is_active")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+
+      const active = data?.is_active !== false;
+
+      if (btnArchive) btnArchive.style.display = active ? "block" : "none";
+      if (btnRestore) btnRestore.style.display = active ? "block" : "none";
+    } catch (err) {
+      console.warn("⚠️ Não foi possível sincronizar status do paciente:", err);
+    }
+  }
+
+  if (btnArchive) {
+    btnArchive.addEventListener("click", async () => {
+      closeMenu();
+      const id = getPatientIdSafe();
+      if (!id) return alert("Paciente inválido.");
+
+      const ok = confirm("Inativar este paciente?\n\nEle será ocultado das listas e não poderá receber novos agendamentos.");
+      if (!ok) return;
+
+      try {
+        await window.Cornelius.archivePatient(id);
+        await syncPatientStatusUI();
+        alert("✅ Paciente inativado.");
+      } catch (e) {
+        console.error(e);
+        alert("❌ Não foi possível inativar.");
+      }
+    });
+  }
+
+  if (btnRestore) {
+    btnRestore.addEventListener("click", async () => {
+      closeMenu();
+      const id = getPatientIdSafe();
+      if (!id) return alert("Paciente inválido.");
+
+      const ok = confirm("Reativar este paciente?\n\nEle voltará a aparecer nas listas.");
+      if (!ok) return;
+
+      try {
+        await window.Cornelius.restorePatient(id);
+        await syncPatientStatusUI();
+        alert("✅ Paciente reativado.");
+      } catch (e) {
+        console.error(e);
+        alert("❌ Não foi possível reativar.");
+      }
+    });
+  }
+
+if (btnDelete) {
+  btnDelete.addEventListener("click", async () => {
+    closeMenu();
+    const id = getPatientIdSafe();
+    if (!id) return alert("Paciente inválido.");
+
+    const ok = confirm(
+      "ATENÇÃO!\n\nIsso irá excluir o paciente e TODOS os dados relacionados (agendamentos, histórico, financeiro).\n\nDeseja continuar?"
+    );
+    if (!ok) return;
+
+    const typed = prompt('Para excluir permanentemente, digite EXCLUIR:');
+    if (typed !== "EXCLUIR") {
+      alert("Exclusão cancelada.");
+      return;
+    }
+
+    try {
+      await window.Cornelius.deletePatientPermanent(id);
+      alert("✅ Paciente excluído permanentemente.");
+      window.location.href = "index.html";
+    } catch (e) {
+      console.error(e);
+      alert("❌ Erro ao excluir paciente.");
+    }
+  });
+}
+
+
+  // Inicial
+  syncPatientStatusUI();
+})();
 
   // -----------------------------
   // Boot

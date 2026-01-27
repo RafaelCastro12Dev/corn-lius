@@ -7,7 +7,42 @@
   <title>Cornélius | Início</title>
   <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
   <link rel="stylesheet" href="assets/css/styles.css"/>
+
+  <!-- ✅ CSS ISOLADO só para o botão Inativos na HOME (não quebra outras telas) -->
+  <style>
+    .home-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .btn-ghost{
+      border: 1.5px solid rgba(16,42,38,0.18);
+      background: rgba(255,255,255,0.85);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 900;
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+      line-height: 1;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+    }
+
+    /* ON sem mudar texto (não quebra layout) */
+    .btn-ghost.is-on{
+      background: rgba(191,243,208,0.55);
+      border-color: rgba(16,42,38,0.28);
+    }
+  </style>
 </head>
+
 <body>
   <!-- ========== BARRA SUPERIOR ========== -->
   <div class="topbar">
@@ -24,11 +59,10 @@
 
       <nav class="nav" role="navigation" aria-label="Menu principal">
         <a href="index.html" class="active">Início</a>
-        <a href="agenda.html"data-admin-only>Agenda</a>
-        <a href="cadastro.html"data-admin-only>Cadastro</a>
-        <a href="profissionais.html"data-admin-only>Profissionais</a>
-        <a href="impressoes.html"data-admin-only>Impressões</a>
-
+        <a href="agenda.html" data-admin-only>Agenda</a>
+        <a href="cadastro.html" data-admin-only>Cadastro</a>
+        <a href="profissionais.html" data-admin-only>Profissionais</a>
+        <a href="impressoes.html" data-admin-only>Impressões</a>
       </nav>
     </div>
   </div>
@@ -41,7 +75,13 @@
         <h1>Página inicial</h1>
         <p>Busque pacientes por nome ou CPF e acesse rapidamente histórico e agendamentos.</p>
       </div>
-      <div class="actions">
+
+      <!-- ✅ Mantém a classe actions original + adiciona class isolada -->
+      <div class="actions home-actions">
+        <button class="btn-ghost" id="btnToggleInactive" type="button" title="Mostrar somente pacientes inativos">
+          Inativos
+        </button>
+
         <a class="btn primary" href="cadastro.html">Novo paciente</a>
         <a class="btn" href="agenda.html">Abrir agenda</a>
       </div>
@@ -58,16 +98,16 @@
 
         <div class="field">
           <label for="q">Pesquisa rápida</label>
-          <input 
-            id="q" 
-            type="text" 
+          <input
+            id="q"
+            type="text"
             placeholder="Ex.: Rafael Silva ou 00295261676"
             autocomplete="off"
           />
         </div>
 
         <div id="results" class="list"></div>
-        
+
         <div id="empty" class="empty" style="display:none;">
           <p>Nenhum paciente encontrado.</p>
           <p><strong>Dica:</strong> Cadastre um novo paciente para começar.</p>
@@ -82,36 +122,25 @@
         </div>
 
         <div id="upcoming" class="list"></div>
-        
+
         <div id="upcomingEmpty" class="empty" style="display:none;">
           <p>Nenhum agendamento futuro encontrado.</p>
           <p><strong>Dica:</strong> Abra a Agenda e crie um atendimento.</p>
         </div>
 
         <div style="margin-top: 14px; text-align: center;">
-          <button class="btn link" id="btnGoAgenda">+ Criar agendamento</button>
+          <button class="btn link" id="btnGoAgenda" type="button">+ Criar agendamento</button>
         </div>
       </aside>
     </div>
   </main>
 
-
-
-<!-- Supabase CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- Configuração -->
-<script src="assets/css/js/supabase-config.js"></script>
-<script src="assets/css/js/realtime.js"></script>
-<script src="assets/css/js/supabase-api.js"></script>
-<script src="assets/css/js/auth.js"></script>
-<!-- API -->
-<script src="assets/css/js/supabase-api.js"></script>
-
-<!-- Script da página -->
-<script src="assets/css/js/index.js"></script>
-
-
-
+  <!-- Scripts (ordem correta) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/css/js/supabase-config.js"></script>
+  <script src="assets/css/js/realtime.js"></script>
+  <script src="assets/css/js/supabase-api.js"></script>
+  <script src="assets/css/js/auth.js"></script>
+  <script src="assets/css/js/index.js"></script>
 </body>
 </html>

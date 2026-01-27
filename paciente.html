@@ -45,13 +45,12 @@
       </div>
 
       <div class="actions">
-        <button class="btn" id="btnGoAgenda" type="button">Voltar</button>
         <button class="btn" id="btnSchedule" type="button">Agendar</button>
         <button class="btn primary" id="btnEdit" type="button">Editar dados</button>
       </div>
     </div>
 
-    <div class="grid" style="grid-template-columns: 340px 1fr; gap:18px;">
+    <div class="grid paciente-grid">
       <!-- Sidebar -->
       <aside class="card">
         <div style="display:flex; align-items:center; gap:10px;">
@@ -65,12 +64,42 @@
       <section class="card">
 
         <!-- Tabs -->
-        <div class="tabs">
-          <button class="btn primary" id="tabHistory" type="button">📋 Histórico</button>
-          <button class="btn" id="tabAppointments" type="button">🗓️ Agendamentos</button>
-          <button class="btn" id="tabFinance" type="button">💰 Financeiro</button>
-          <button class="btn" id="tabFinanceSettings" type="button">⚙️ Config. Financeira</button>
-        </div>
+     <div class="tabs patient-tabs">
+
+  <button class="btn primary" id="tabHistory">📋 Histórico</button>
+  <button class="btn" id="tabAppointments">🗓️ Agendamentos</button>
+  <button class="btn" id="tabFinance">💰 Financeiro</button>
+  <button class="btn" id="tabFinanceSettings">⚙️ Config. Financeira</button>
+
+  <!-- ADMIN ONLY -->
+  <div id="patientAdminPanel" class="patient-manage-wrap" style="display:none;">
+    <div class="dropdown">
+      <button type="button" class="btn-ghost" id="btnManagePatient">
+        Gerenciar ▾
+      </button>
+
+      <div class="dropdown-menu" id="patientManageMenu" style="display:none;">
+        <button type="button" class="dropdown-item" id="btnArchivePatient">
+          Inativar paciente
+          <small>Oculta das listas e bloqueia novos agendamentos.</small>
+        </button>
+
+        <button type="button" class="dropdown-item" id="btnRestorePatient" style="display:none;">
+          Reativar paciente
+          <small>Volta a aparecer nas listas.</small>
+        </button>
+
+        <div class="dropdown-sep"></div>
+
+        <button type="button" class="dropdown-item danger" id="btnDeletePatient">
+          Excluir permanentemente…
+          <small>Somente se não houver histórico.</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
 
         <!-- PANEL: HISTÓRICO -->
         <div id="panelHistory" style="margin-top:14px;">
@@ -154,10 +183,13 @@
 
           <div class="actions" style="margin-top:12px;">
             <button class="btn primary" id="btnSaveFinanceSettings" type="button">Salvar</button>
+            
           </div>
+          
         </div>
-
+        
       </section>
+      
     </div>
 
     <!-- ========== MODAL: ANOTAÇÃO ========== -->
@@ -342,16 +374,21 @@
 
         <form id="editForm" autocomplete="on">
           <div class="body">
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
-              <div>
-                <label class="label" for="eName">Nome</label>
-                <input class="input" id="eName" placeholder="Nome completo">
-              </div>
-              <div>
-                <label class="label" for="eCpf">CPF</label>
-                <input class="input" id="eCpf" placeholder="000.000.000-00">
-              </div>
-            </div>
+            <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+  <div>
+    <label class="label" for="eName">Nome</label>
+    <input class="input" id="eName" placeholder="Nome completo">
+  </div>
+  <div>
+    <label class="label" for="eCpf">CPF</label>
+    <input class="input" id="eCpf" placeholder="000.000.000-00">
+  </div>
+  <div>
+    <label class="label" for="eBirthDate">Nascimento</label>
+    <input class="input" id="eBirthDate" type="date">
+  </div>
+</div>
+
 
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
               <div>

@@ -55,29 +55,24 @@
 
      <form id="formPatient">
         <!-- Nome e CPF -->
-        <div class="grid" style="grid-template-columns: 1.3fr 0.7fr; gap: 14px;">
-          <div class="field">
-            <label for="name">Nome completo *</label>
-            <input 
-              id="name" 
-              type="text"
-              required 
-              placeholder="Ex.: Maria Aparecida da Silva"
-              autocomplete="name"
-            />
-          </div>
-          <div class="field">
-            <label for="cpf">CPF *</label>
-            <input 
-              id="cpf" 
-              type="text"
-              required 
-              placeholder="000.000.000-00"
-              pattern="[0-9]{3}\.?[0-9]{3}\.?[0-9]{3}-?[0-9]{2}"
-              autocomplete="off"
-            />
-          </div>
-        </div>
+        <!-- Nome, CPF e Nascimento -->
+<div class="grid" style="grid-template-columns: 1.2fr 0.6fr 0.6fr; gap: 14px;">
+  <div class="field">
+    <label for="name">Nome completo *</label>
+    <input id="name" type="text" required placeholder="Ex.: Maria Aparecida da Silva" autocomplete="name" />
+  </div>
+
+  <div class="field">
+    <label for="cpf">CPF *</label>
+    <input id="cpf" type="text" required placeholder="000.000.000-00"
+      pattern="[0-9]{3}\.?[0-9]{3}\.?[0-9]{3}-?[0-9]{2}" autocomplete="off" />
+  </div>
+
+  <div class="field">
+    <label for="birthDate">Nascimento</label>
+    <input id="birthDate" type="date" />
+  </div>
+</div>
 
         <!-- Email e Telefone -->
         <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
