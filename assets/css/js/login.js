@@ -2,8 +2,6 @@
 (function () {
   "use strict";
 
-  const FIXED_USER = "cornelius";
-
   const $ = (id) => document.getElementById(id);
 
   const form = $("loginForm");
@@ -12,6 +10,13 @@
   const btnClear = $("btnClear");
   const errBox = $("loginError");
   const eyeBtn = $("togglePass");
+
+  const sb = window.supabaseClient;
+
+  // Se você quiser manter "cornelius" como atalho para o admin,
+  // coloque aqui o email do admin:
+  const LEGACY_USERNAME = "cornelius";
+  const ADMIN_EMAIL = "rafael.araujo12@icloud.com"; // ajuste se mudar
 
   function showError(msg) {
     errBox.textContent = msg;
@@ -27,61 +32,139 @@
     return new URLSearchParams(location.search).get("next") || "index.html";
   }
 
+  function normalizeLogin(uRaw) {
+    const u = (uRaw || "").trim();
+
+    // Atalho opcional: "cornelius" vira o email do admin
+    if (u.toLowerCase() === LEGACY_USERNAME) return ADMIN_EMAIL;
+
+    return u;
+  }
+
+  async function getRoleForUser(user) {
+    // 1) tenta ler role do banco (user_roles)
+    try {
+      const { data, error } = await sb
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data?.role) return data.role;
+    } catch (_) {
+      // ignora, cai no fallback
+    }
+
+    // 2) fallback seguro (caso role não exista por algum motivo):
+    // se for o email do admin, assume admin; senão professional
+    if ((user.email || "").toLowerCase() === (ADMIN_EMAIL || "").toLowerCase()) return "admin";
+    return "professional";
+  }
+
+  function persistAuthContext(user, role) {
+    // o front pode usar isso para esconder menus/páginas
+    localStorage.setItem("cornelius_role", role);
+    localStorage.setItem("cornelius_email", user.email || "");
+    localStorage.setItem("cornelius_uid", user.id || "");
+  }
+
+  function redirectByRole(role) {
+    if (role === "professional") {
+      // médica: só agenda (visual)
+      location.href = "agenda.html";
+      return;
+    }
+    // admin: segue fluxo normal
+    location.href = getNext();
+  }
+
+  async function ensureClient() {
+    if (!sb) {
+      showError("Erro: Supabase não carregou. Verifique a ordem dos scripts.");
+      return false;
+    }
+    return true;
+  }
+
   async function doLogin() {
     clearError();
 
-    const u = (userEl.value || "").trim();
-    const p = (passEl.value || "").trim();
+    if (!(await ensureClient())) return;
 
-    if (!u || !p) {
-      showError("Preencha usuário e senha.");
+    const rawUser = (userEl.value || "").trim();
+    const email = normalizeLogin(rawUser);
+    const password = (passEl.value || "").trim();
+
+    if (!email || !password) {
+      showError("Preencha usuário (email) e senha.");
       return;
     }
 
-    // Mantém UX atual: usuário fixo
-    if (u !== FIXED_USER) {
-      showError("Usuário inválido.");
+    // valida formato mínimo (evita erros bobos)
+    if (!email.includes("@")) {
+      showError("Digite um email válido (ex: dra1@teste.com).");
       return;
     }
 
     try {
-      const ok = await window.CorneliusAuth.login(u, p);
-      if (!ok) {
-        showError("Senha incorreta.");
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        // 400 invalid login credentials cai aqui
+        showError("Usuário ou senha inválidos.");
         return;
       }
 
-      location.href = getNext();
+      const user = data?.user;
+      if (!user) {
+        showError("Falha ao obter usuário logado.");
+        return;
+      }
+
+      const role = await getRoleForUser(user);
+      persistAuthContext(user, role);
+      redirectByRole(role);
     } catch (e) {
       console.error(e);
-      showError("Erro ao entrar. Verifique a senha.");
+      showError("Erro ao entrar. Tente novamente.");
     }
   }
 
+  // Submit
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     doLogin();
   });
 
+  // Limpar
   btnClear.addEventListener("click", () => {
-    userEl.value = FIXED_USER;
+    userEl.value = "";
     passEl.value = "";
     clearError();
-    passEl.focus();
+    userEl.focus();
   });
 
+  // Olhinho
   if (eyeBtn) {
     eyeBtn.addEventListener("click", () => {
       passEl.type = passEl.type === "password" ? "text" : "password";
     });
   }
 
-  // Se já estiver logado, pula
-  if (window.CorneliusAuth.isAuthed()) {
-    location.href = getNext();
-    return;
-  }
+  // Se já estiver logado, pula (mas respeita role)
+  (async () => {
+    if (!(await ensureClient())) return;
 
-  userEl.value = FIXED_USER;
-  passEl.focus();
+    const { data } = await sb.auth.getSession();
+    const session = data?.session;
+
+    if (!session?.user) {
+      userEl.focus();
+      return;
+    }
+
+    const role = await getRoleForUser(session.user);
+    persistAuthContext(session.user, role);
+    redirectByRole(role);
+  })();
 })();

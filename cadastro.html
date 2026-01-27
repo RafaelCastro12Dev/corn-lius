@@ -23,11 +23,11 @@
       </div>
 
       <nav class="nav" role="navigation" aria-label="Menu principal">
-        <a href="index.html">Início</a>
-        <a href="agenda.html">Agenda</a>
+        <a href="index.html" data-admin-only>Início</a>
+        <a href="agenda.html" data-admin-only>Agenda</a>
         <a href="cadastro.html" class="active">Cadastro</a>
-        <a href="profissionais.html">Profissionais</a>
-        <a href="impressoes.html">Impressões</a>
+        <a href="profissionais.html" data-admin-only>Profissionais</a>
+        <a href="impressoes.html" data-admin-only>Impressões</a>
 
       </nav>
     </div>
@@ -112,27 +112,8 @@
           />
         </div>
 
-        <!-- Cor padrão -->
-        <div class="grid" style="grid-template-columns: 0.45fr 1.55fr; gap: 14px; align-items: start;">
-          <div class="field">
-            <label for="color">Cor padrão</label>
-            <select id="color">
-              <option value="#457B9D">🔵 Azul</option>
-              <option value="#2A9D8F" selected>🟢 Verde</option>
-              <option value="#9B5DE5">🟣 Roxo</option>
-              <option value="#F4A261">🟠 Laranja</option>
-              <option value="#6C757D">⚫ Cinza</option>
-            </select>
-          </div>
-          
-          <div class="empty" style="margin: 26px 0 0 0;">
-            🎨 Esta cor será usada como padrão nos agendamentos deste paciente, facilitando a leitura visual da agenda. Você poderá alterar a cor em cada evento individualmente se necessário.
-          </div>
-        </div>
-
         <!-- Botões de ação -->
         <div class="actions" style="margin-top: 20px; justify-content: flex-start;">
-          <button type="button" class="btn" id="btnRandom">🎲 Cor aleatória</button>
           <button type="reset" class="btn">Limpar formulário</button>
           <button type="submit" class="btn primary">💾 Salvar paciente</button>
         </div>

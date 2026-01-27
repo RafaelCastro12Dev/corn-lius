@@ -1222,3 +1222,153 @@ input[type="checkbox"] {
   box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
+/* ============================
+   Cornélius - FullCalendar Theme
+   ============================ */
+
+#calendar {
+  --ce-border: rgba(17, 24, 39, 0.08);
+  --ce-soft: rgba(17, 24, 39, 0.04);
+  --ce-text: #0f172a;
+  --ce-muted: rgba(15, 23, 42, 0.72);
+
+  border: 1px solid var(--ce-border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+/* Header */
+#calendar .fc-toolbar {
+  padding: 14px 16px;
+  margin: 0;
+  border-bottom: 1px solid var(--ce-border);
+  background: linear-gradient(180deg, rgba(236, 253, 245, 0.65), rgba(255,255,255,1));
+}
+
+#calendar .fc-toolbar-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ce-text);
+}
+
+/* Buttons */
+#calendar .fc-button {
+  border-radius: 999px !important;
+  border: 1px solid var(--ce-border) !important;
+  background: #fff !important;
+  color: var(--ce-text) !important;
+  font-weight: 700 !important;
+  padding: 7px 12px !important;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+}
+
+#calendar .fc-button:hover {
+  background: rgba(236, 253, 245, 0.7) !important;
+}
+
+#calendar .fc-button-primary:not(:disabled).fc-button-active,
+#calendar .fc-button-primary:not(:disabled):active {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Day headers */
+#calendar .fc-col-header-cell {
+  background: #fff;
+  border-bottom: 1px solid var(--ce-border);
+}
+#calendar .fc-col-header-cell-cushion {
+  padding: 10px 6px;
+  color: var(--ce-muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 12px;
+}
+
+/* Time axis */
+#calendar .fc-timegrid-axis-cushion,
+#calendar .fc-timegrid-slot-label-cushion {
+  color: rgba(15, 23, 42, 0.60);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+/* Grid lines */
+#calendar .fc-scrollgrid,
+#calendar .fc-scrollgrid td,
+#calendar .fc-scrollgrid th {
+  border-color: var(--ce-border) !important;
+}
+
+#calendar .fc-timegrid-slot {
+  border-color: rgba(17, 24, 39, 0.06) !important;
+}
+
+/* “Now” line */
+#calendar .fc-timegrid-now-indicator-line {
+  border-color: rgba(239, 68, 68, 0.8) !important;
+}
+#calendar .fc-timegrid-now-indicator-arrow {
+  border-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Event base */
+#calendar .ce-event.fc-event {
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.10);
+  overflow: hidden;
+}
+
+#calendar .ce-event .fc-event-main {
+  padding: 8px 10px !important;
+}
+
+/* Event typography */
+#calendar .ce-event .ce-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+#calendar .ce-event .ce-time {
+  font-weight: 900;
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+#calendar .ce-event .ce-room {
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.16);
+  backdrop-filter: blur(6px);
+}
+
+#calendar .ce-event .ce-title {
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1.15;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Hover feel */
+#calendar .ce-event {
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+#calendar .ce-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.14);
+}
+
+/* Reduce clutter on all-day row in week view */
+#calendar .fc-timegrid .fc-daygrid-body {
+  display: none;
+}

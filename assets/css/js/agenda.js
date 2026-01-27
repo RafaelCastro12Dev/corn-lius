@@ -2,16 +2,17 @@
  * Cornélius - Agenda (Calendário FullCalendar)
  * Versão Supabase (async/await)
  *
- * - Paciente por busca (input + sugestão)
- * - Sala aparece apenas 1 vez (eventContent, não no título)
- * - Passo 2.1: abrir modal automaticamente via querystring (?new=1&patient=...&patient_name=...)
- * - Agendamento múltiplo dentro do mesmo modal (sem quebrar o simples)
+ * - Profissional vê SOMENTE a própria agenda (email Auth -> professionals.email)
+ * - Filtro de profissional oculto para professional
+ * - Realtime ignora eventos de outros profissionais
+ * - FIX: hora não “anda” ao editar (datetime-local em hora local, não UTC)
+ * - VISUAL: cards mais premium + sala pequena ao lado do horário + grid mais consistente
  */
 
 (function () {
   "use strict";
 
-  if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
+  if (window.CorneliusAuth && !window.CorneliusAuth.requireAnyRole(["admin", "professional"])) return;
 
   const C = window.Cornelius;
   if (C && typeof C.setActiveNav === "function") C.setActiveNav();
@@ -29,7 +30,6 @@
   const btnSave = document.getElementById("btnSave");
   const btnDelete = document.getElementById("btnDelete");
 
-  // ✅ Form do modal (para Enter salvar)
   const appointmentForm = document.getElementById("appointmentForm");
 
   const patientSearch = document.getElementById("patientSearch");
@@ -45,7 +45,7 @@
   const notes = document.getElementById("notes");
   const apptRoom = document.getElementById("apptRoom");
 
-  // Multi (pode não existir ainda no HTML; não quebra)
+  // Multi (pode não existir no HTML)
   const multiMode = document.getElementById("multiMode");
   const multiBox = document.getElementById("multiBox");
   const multiCount = document.getElementById("multiCount");
@@ -58,6 +58,18 @@
   let calendar = null;
   let editingId = null;
   let blockedHolidays = [];
+
+  // -----------------------------
+  // Acesso (admin x professional)
+  // -----------------------------
+  const role = (window.CorneliusRole || localStorage.getItem("cornelius_role") || "").toLowerCase().trim();
+  const isProfessional = role === "professional";
+  const isReadOnly = isProfessional;
+
+  // Lock 2.4
+  let lockedProfessionalId = null;
+  let lockedProfessionalName = null;
+  let lockedProfessionalEmail = null;
 
   // -----------------------------
   // Helpers
@@ -75,6 +87,15 @@
     return local.toISOString().slice(0, 10);
   }
 
+  // ✅ FIX: valor correto para <input type="datetime-local"> (hora local)
+  function toDatetimeLocalValue(date) {
+    if (!date) return "";
+    const d = (date instanceof Date) ? date : new Date(date);
+    const off = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() - off);
+    return local.toISOString().slice(0, 16);
+  }
+
   function setDefaultTimes() {
     const now = new Date();
     const start = new Date(now);
@@ -82,8 +103,8 @@
     const end = new Date(start);
     end.setHours(10, 0, 0, 0);
 
-    if (startAt) startAt.value = start.toISOString().slice(0, 16);
-    if (endAt) endAt.value = end.toISOString().slice(0, 16);
+    if (startAt) startAt.value = toDatetimeLocalValue(start);
+    if (endAt) endAt.value = toDatetimeLocalValue(end);
   }
 
   function debounce(fn, delay = 250) {
@@ -104,17 +125,78 @@
     return `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9)}`;
   }
 
+  function normalizeEmail(v) {
+    return (v || "").toString().trim().toLowerCase();
+  }
+
+  function hideElement(el) {
+    if (!el) return;
+    const container =
+      el.closest?.(".field") ||
+      el.closest?.(".form-group") ||
+      el.closest?.(".input-group") ||
+      el.parentElement;
+    if (container) container.style.display = "none";
+    else el.style.display = "none";
+  }
+
   // -----------------------------
-  // Multi Mode (UI + helpers)
+  // 2.4 — Resolver lock do professional via email do Auth
+  // -----------------------------
+  async function resolveProfessionalLock() {
+    if (!isProfessional) return;
+
+    try {
+      if (!window.supabaseClient) {
+        console.warn("⚠️ supabaseClient não encontrado. Lock não aplicado.");
+        hideElement(professionalFilter);
+        return;
+      }
+      if (!C || typeof C.getAllProfessionals !== "function") {
+        console.warn("⚠️ getAllProfessionals não disponível. Lock não aplicado.");
+        hideElement(professionalFilter);
+        return;
+      }
+
+      const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+      if (error) throw error;
+
+      const email = normalizeEmail(user?.email);
+      if (!email) throw new Error("Usuário logado sem email.");
+
+      lockedProfessionalEmail = email;
+
+      const professionals = await C.getAllProfessionals();
+      const me = (professionals || []).find(p => normalizeEmail(p.email) === email);
+
+      if (!me?.id) {
+        console.warn("⚠️ Nenhum professional encontrado com este email:", email);
+        hideElement(professionalFilter);
+        return;
+      }
+
+      lockedProfessionalId = me.id;
+      lockedProfessionalName = me.name || "Profissional";
+
+      hideElement(professionalFilter);
+
+      const title = document.getElementById("agendaTitle");
+      if (title) title.textContent = `Agenda de ${lockedProfessionalName}`;
+
+      console.log("🔒 Agenda travada para professional_id:", lockedProfessionalId, "| email:", lockedProfessionalEmail);
+    } catch (e) {
+      console.warn("⚠️ Erro ao aplicar lock do profissional:", e);
+      hideElement(professionalFilter);
+    }
+  }
+
+  // -----------------------------
+  // Multi Mode
   // -----------------------------
   function setMultiEnabled(enabled) {
     if (!multiBox) return;
-
     multiBox.style.display = enabled ? "block" : "none";
-
-    if (!enabled && multiList) {
-      multiList.innerHTML = "";
-    }
+    if (!enabled && multiList) multiList.innerHTML = "";
   }
 
   function resetMulti() {
@@ -128,7 +210,7 @@
     if (!multiList) return;
     multiList.innerHTML = "";
 
-    const count = Math.max(2, Math.min(30, n || 2)); // limite de segurança
+    const count = Math.max(2, Math.min(30, n || 2));
 
     for (let i = 0; i < count; i++) {
       const row = document.createElement("div");
@@ -150,7 +232,6 @@
       multiList.appendChild(row);
     }
 
-    // Pré-preenche a primeira linha com startAt/endAt atuais
     const firstStart = multiList.querySelector("[data-mstart]");
     const firstEnd = multiList.querySelector("[data-mend]");
     if (firstStart && startAt?.value) firstStart.value = startAt.value;
@@ -158,9 +239,7 @@
   }
 
   if (multiMode) {
-    multiMode.addEventListener("change", () => {
-      setMultiEnabled(!!multiMode.checked);
-    });
+    multiMode.addEventListener("change", () => setMultiEnabled(!!multiMode.checked));
   }
 
   if (btnBuildMulti) {
@@ -196,10 +275,8 @@
 
     if (btnDelete) btnDelete.style.display = "none";
 
-    // Multi sempre começa desligado ao abrir novo
     resetMulti();
 
-    // Exibe modal (robusto)
     if (modalBackdrop) {
       modalBackdrop.classList.add("show");
       modalBackdrop.style.display = "flex";
@@ -217,7 +294,6 @@
 
     modalBackdrop.classList.remove("show");
 
-    // limpa as forçadas
     modalBackdrop.style.display = "";
     modalBackdrop.style.opacity = "";
     modalBackdrop.style.visibility = "";
@@ -231,10 +307,9 @@
   }
 
   // -----------------------------
-  // Selects / fontes
+  // Selects
   // -----------------------------
   async function buildPatientOptions() {
-    // paciente é por digitação; aqui só limpamos UI
     if (patientSuggest) {
       patientSuggest.style.display = "none";
       patientSuggest.innerHTML = "";
@@ -258,7 +333,6 @@
           opt1.textContent = p.name;
           professionalSelect.appendChild(opt1);
         }
-
         if (professionalFilter) {
           const opt2 = document.createElement("option");
           opt2.value = p.id;
@@ -267,8 +341,9 @@
         }
       });
 
-      // Restaurar filtro anterior
-      if (professionalFilter && prevFilter && professionalFilter.querySelector(`option[value="${prevFilter}"]`)) {
+      if (isProfessional && lockedProfessionalId && professionalFilter) {
+        professionalFilter.value = lockedProfessionalId;
+      } else if (professionalFilter && prevFilter && professionalFilter.querySelector(`option[value="${prevFilter}"]`)) {
         professionalFilter.value = prevFilter;
       }
     } catch (err) {
@@ -312,8 +387,6 @@
     if (!C || typeof C.searchPatients !== "function") return;
 
     const term = (patientSearch.value || "").trim();
-
-    // qualquer digitação invalida seleção anterior
     patientId.value = "";
 
     if (term.length < 2) {
@@ -340,10 +413,8 @@
       if (patientId) patientId.value = item.dataset.id || "";
       if (patientSearch) patientSearch.value = item.dataset.name || "";
 
-      // cor do paciente
       if (item.dataset.color && color) color.value = item.dataset.color;
 
-      // autopreencher profissional do paciente (se existir)
       if (item.dataset.professionalId && professionalSelect) {
         professionalSelect.value = item.dataset.professionalId;
       }
@@ -352,7 +423,6 @@
     });
   }
 
-  // fechar sugestão ao clicar fora
   document.addEventListener("click", (ev) => {
     if (!patientSuggest || !patientSearch) return;
     if (!patientSuggest.contains(ev.target) && ev.target !== patientSearch) {
@@ -402,16 +472,12 @@
     });
 
     if (events.length > 0 && calendar) {
-      calendar.addEventSource({
-        id: "holidays",
-        events,
-        color: "#ffebee",
-      });
+      calendar.addEventSource({ id: "holidays", events, color: "#ffebee" });
     }
   }
 
   // -----------------------------
-  // Eventos do calendário
+  // Build events
   // -----------------------------
   async function buildCalendarEvents() {
     try {
@@ -429,7 +495,9 @@
       const professionalMap = {};
       (professionals || []).forEach((p) => (professionalMap[p.id] = p));
 
-      const filterProfId = professionalFilter ? professionalFilter.value : "";
+      const filterProfId = isProfessional
+        ? (lockedProfessionalId || "")
+        : (professionalFilter ? professionalFilter.value : "");
 
       const events = [];
 
@@ -439,7 +507,7 @@
         const p = patientMap[a.patient_id];
         const pro = professionalMap[a.professional_id];
 
-        // Título sem sala
+        // título base (sem sala)
         const title = `${p ? p.name : "Paciente"}${pro ? " — " + pro.name : ""}`;
         const eventColor = a.color || (p ? p.color : null) || "#2A9D8F";
 
@@ -483,62 +551,111 @@
     calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: "timeGridWeek",
       locale: "pt-br",
+
       headerToolbar: {
         left: "prev,next today",
         center: "title",
         right: "dayGridMonth,timeGridWeek,timeGridDay",
       },
       buttonText: { today: "Hoje", month: "Mês", week: "Semana", day: "Dia" },
+
+      // Grid mais consistente
+      slotDuration: "00:30:00",
+      slotLabelInterval: "01:00",
       slotMinTime: "07:00:00",
       slotMaxTime: "21:00:00",
+
+      // Melhor leitura
       height: "auto",
-      selectable: true,
+      expandRows: true,
+      stickyHeaderDates: true,
+      nowIndicator: false,
+      dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" },
+
+      selectable: !isReadOnly,
       editable: false,
+
+      // Evita sobreposição
+      slotEventOverlap: false,
+      eventOverlap: false,
+      eventDisplay: "block",
+      dayMaxEvents: true,
+
+      // “toque” de card
+      eventMinHeight: 32,
+      eventShortHeight: 32,
+      eventMaxStack: 4,
+
+      slotLabelFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
       eventTimeFormat: { hour: "2-digit", minute: "2-digit", meridiem: false },
+
       events,
 
-      // Sala só no eventContent
-      eventContent: function (arg) {
-        const props = arg.event.extendedProps || {};
-        const patientName = props.patientName || "Paciente";
-        const professionalName = props.professionalName || "";
-        const room = props.room || "";
+      // Conteúdo premium: hora + sala pequena + título com quebra
+     eventContent: function (arg) {
+  const props = arg.event.extendedProps || {};
+  const patientName = props.patientName || "Paciente";
+  const professionalName = props.professionalName || "";
+  const room = props.room || "";
 
-        const line1 = professionalName ? `${patientName} — ${professionalName}` : patientName;
+  const line1 = professionalName ? `${patientName} — ${professionalName}` : patientName;
+  const roomNum = String(room).replace(/[^0-9]/g, "") || room;
 
-        const html = `
-          <div class="fc-event-main-frame">
-            <div class="fc-event-time">${arg.timeText}</div>
-            <div class="fc-event-title-container">
-              <div class="fc-event-title fc-sticky" style="font-weight: 600;">
-                ${C.escapeHtml(line1)}
-              </div>
-              ${
-                room
-                  ? `<div class="fc-event-subtitle" style="font-size: 0.85em; opacity: 0.9;">${C.escapeHtml(room)}</div>`
-                  : ""
-              }
-            </div>
-          </div>
-        `;
+  return {
+    html: `
+      <div>
+        <div class="ce-top">
+          <span class="ce-time">${arg.timeText}</span>
+          ${room ? `<span class="ce-room">S${C.escapeHtml(roomNum)}</span>` : ""}
+        </div>
+        <div class="ce-title">${C.escapeHtml(line1)}</div>
+      </div>
+    `
+  };
+},
 
-        return { html };
+
+      // Estilo premium e hover suave
+      eventDidMount: function (info) {
+        const el = info.el;
+
+        el.style.borderRadius = "14px";
+        el.style.border = "1px solid rgba(0,0,0,0.10)";
+        el.style.overflow = "hidden";
+        el.style.boxShadow = "0 6px 16px rgba(0,0,0,0.10)";
+
+        el.style.transition = "transform .12s ease, box-shadow .12s ease";
+
+        const main = el.querySelector(".fc-event-main");
+        if (main) main.style.padding = "8px 10px";
+
+        // Hover “levanta”
+        el.addEventListener("mouseenter", () => {
+          el.style.transform = "translateY(-1px)";
+          el.style.boxShadow = "0 10px 22px rgba(0,0,0,0.14)";
+        });
+        el.addEventListener("mouseleave", () => {
+          el.style.transform = "translateY(0)";
+          el.style.boxShadow = "0 6px 16px rgba(0,0,0,0.10)";
+        });
       },
 
       select: function (info) {
+        if (isReadOnly) return;
         openModal();
-        if (startAt) startAt.value = info.startStr.slice(0, 16);
-        if (endAt) endAt.value = info.endStr.slice(0, 16);
+        if (startAt) startAt.value = toDatetimeLocalValue(info.start);
+        if (endAt) endAt.value = toDatetimeLocalValue(info.end);
       },
 
       eventClick: async function (info) {
+        if (isReadOnly) return;
+
         const event = info.event;
         editingId = event.id;
 
         const modalTitle = document.getElementById("modalTitle");
         if (modalTitle) modalTitle.textContent = "Editar Agendamento";
 
-        // editar sempre simples (seguro)
         resetMulti();
 
         if (patientId) patientId.value = event.extendedProps.patientId || "";
@@ -549,8 +666,8 @@
         }
 
         if (professionalSelect) professionalSelect.value = event.extendedProps.professionalId || "";
-        if (startAt) startAt.value = event.start.toISOString().slice(0, 16);
-        if (endAt) endAt.value = event.end ? event.end.toISOString().slice(0, 16) : "";
+        if (startAt) startAt.value = toDatetimeLocalValue(event.start);
+        if (endAt) endAt.value = event.end ? toDatetimeLocalValue(event.end) : "";
         if (color) color.value = event.backgroundColor || "#2A9D8F";
         if (notes) notes.value = event.extendedProps.notes || "";
         if (apptRoom) apptRoom.value = event.extendedProps.room || "";
@@ -576,7 +693,6 @@
 
     calendar.render();
 
-    // feriados iniciais
     const view = calendar.view;
     if (view && view.activeStart && view.activeEnd) {
       loadHolidaysForView(view.activeStart, view.activeEnd);
@@ -584,7 +700,7 @@
   }
 
   // -----------------------------
-  // Validação base (1 agendamento)
+  // Validação
   // -----------------------------
   function validateForm() {
     const patientIdValue = patientId?.value || "";
@@ -592,40 +708,18 @@
     const start = startAt?.value || "";
     const end = endAt?.value || "";
 
-    if (!patientIdValue) {
-      toast("⚠️ Selecione um paciente");
-      return null;
-    }
-
-    if (!professionalId) {
-      toast("⚠️ Selecione um profissional");
-      return null;
-    }
-
-    if (!start || !end) {
-      toast("⚠️ Preencha início e fim");
-      return null;
-    }
+    if (!patientIdValue) return toast("⚠️ Selecione um paciente"), null;
+    if (!professionalId) return toast("⚠️ Selecione um profissional"), null;
+    if (!start || !end) return toast("⚠️ Preencha início e fim"), null;
 
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      toast("⚠️ Data/hora inválida");
-      return null;
-    }
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return toast("⚠️ Data/hora inválida"), null;
+    if (endDate <= startDate) return toast("⚠️ Fim deve ser após início"), null;
 
-    if (endDate <= startDate) {
-      toast("⚠️ Fim deve ser após início");
-      return null;
-    }
-
-    // feriado
     const dateYmd = ymdLocal(startDate);
-    if (blockedHolidays.includes(dateYmd)) {
-      toast("⚠️ Não é possível agendar em feriado nacional");
-      return null;
-    }
+    if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Não é possível agendar em feriado nacional"), null;
 
     return {
       patient_id: patientIdValue,
@@ -638,51 +732,28 @@
     };
   }
 
-  // -----------------------------
-  // Salvar (simples)
-  // -----------------------------
   async function saveSingle() {
     const data = validateForm();
     if (!data) return;
 
-    if (editingId) {
-      await C.updateAppointment(editingId, data);
-    } else {
-      await C.addAppointment(data);
-    }
+    if (editingId) await C.updateAppointment(editingId, data);
+    else await C.addAppointment(data);
 
     closeModal();
     await refresh();
   }
 
-  // -----------------------------
-  // Salvar inteligente (simples ou múltiplo)
-  // -----------------------------
   async function saveSmart() {
     try {
-      // Se está editando, sempre simples
-      if (editingId) {
-        await saveSingle();
-        return;
-      }
+      if (editingId) return await saveSingle();
 
       const isMulti = !!(multiMode && multiMode.checked);
+      if (!isMulti) return await saveSingle();
 
-      if (!isMulti) {
-        await saveSingle();
-        return;
-      }
-
-      // Modo múltiplo: exige linhas
       const starts = Array.from(multiList?.querySelectorAll("[data-mstart]") || []);
       const ends = Array.from(multiList?.querySelectorAll("[data-mend]") || []);
+      if (!starts.length || !ends.length) return toast("⚠️ Clique em 'Gerar campos' e preencha os horários.");
 
-      if (!starts.length || !ends.length) {
-        toast("⚠️ Clique em 'Gerar campos' e preencha os horários.");
-        return;
-      }
-
-      // Base valida paciente/prof/cor/sala/obs (start/end base serão substituídos)
       const base = validateForm();
       if (!base) return;
 
@@ -691,43 +762,21 @@
       for (let i = 0; i < starts.length; i++) {
         const s = (starts[i].value || "").trim();
         const e = (ends[i]?.value || "").trim();
-
-        if (!s || !e) {
-          toast("⚠️ Preencha início e fim de todos os agendamentos.");
-          return;
-        }
+        if (!s || !e) return toast("⚠️ Preencha início e fim de todos os agendamentos.");
 
         const sDate = new Date(s);
         const eDate = new Date(e);
 
-        if (isNaN(sDate.getTime()) || isNaN(eDate.getTime())) {
-          toast("⚠️ Datas inválidas no agendamento múltiplo.");
-          return;
-        }
+        if (isNaN(sDate.getTime()) || isNaN(eDate.getTime())) return toast("⚠️ Datas inválidas no agendamento múltiplo.");
+        if (eDate <= sDate) return toast("⚠️ Em um dos itens, o fim é antes do início.");
 
-        if (eDate <= sDate) {
-          toast("⚠️ Em um dos itens, o fim é antes do início.");
-          return;
-        }
-
-        // feriado
         const dateYmd = ymdLocal(sDate);
-        if (blockedHolidays.includes(dateYmd)) {
-          toast("⚠️ Um dos agendamentos cai em feriado nacional.");
-          return;
-        }
+        if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Um dos agendamentos cai em feriado nacional.");
 
-        payloads.push({
-          ...base,
-          start_time: sDate.toISOString(),
-          end_time: eDate.toISOString(),
-        });
+        payloads.push({ ...base, start_time: sDate.toISOString(), end_time: eDate.toISOString() });
       }
 
-      // cria em sequência (mais confiável)
-      for (const p of payloads) {
-        await C.addAppointment(p);
-      }
+      for (const p of payloads) await C.addAppointment(p);
 
       closeModal();
       await refresh();
@@ -738,9 +787,6 @@
     }
   }
 
-  // -----------------------------
-  // Deletar
-  // -----------------------------
   async function deleteAppointment() {
     if (!editingId) return;
 
@@ -757,9 +803,6 @@
     }
   }
 
-  // -----------------------------
-  // Refresh
-  // -----------------------------
   async function refresh() {
     await buildPatientOptions();
     await buildProfessionalOptions();
@@ -770,18 +813,19 @@
   // Listeners
   // -----------------------------
   if (btnNew) {
-    btnNew.addEventListener("click", () => {
-      openModal();
-      setDefaultTimes();
-    });
-  } else {
-    console.warn("⚠️ btnNew não encontrado no DOM");
+    if (isReadOnly) {
+      btnNew.style.display = "none";
+    } else {
+      btnNew.addEventListener("click", () => {
+        openModal();
+        setDefaultTimes();
+      });
+    }
   }
 
   if (btnClose) btnClose.addEventListener("click", closeModal);
   if (btnCancel) btnCancel.addEventListener("click", closeModal);
 
-  // ✅ Enter no form => salvar (mesma função do botão)
   if (appointmentForm) {
     appointmentForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -789,13 +833,13 @@
     });
   }
 
-  // mantém clique funcionando (sem alterar comportamento)
   if (btnSave) btnSave.addEventListener("click", saveSmart);
   if (btnDelete) btnDelete.addEventListener("click", deleteAppointment);
 
-  if (professionalFilter) professionalFilter.addEventListener("change", refresh);
+  if (professionalFilter && !isProfessional) {
+    professionalFilter.addEventListener("change", refresh);
+  }
 
-  // Fechar modal clicando fora
   if (modalBackdrop) {
     modalBackdrop.addEventListener("click", (e) => {
       if (e.target === modalBackdrop) closeModal();
@@ -805,19 +849,15 @@
   async function applyPatientDefaultsById(pId) {
     if (!pId) return;
     try {
-      // Você provavelmente já tem isso no supabase-api.js
       if (!C || typeof C.getPatientById !== "function") return;
 
       const p = await C.getPatientById(pId);
       if (!p) return;
 
-      // cor do paciente
       if (p.color && color) color.value = p.color;
 
-      // profissional vinculado ao paciente
       const profId = p.assigned_professional_id || "";
       if (profId && professionalSelect) {
-        // Espera o select ter as opções (porque ele carrega async no refresh)
         await waitForProfessionalOption(profId, 2000);
         professionalSelect.value = profId;
       }
@@ -841,8 +881,6 @@
 
   // -----------------------------
   // Passo 2.1: abrir modal automático + pré-preencher paciente via URL
-  // Ex:
-  // agenda.html?new=1&patient=UUID&patient_name=Rafael%20Araujo
   // -----------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
@@ -852,41 +890,44 @@
     const prePatientName = params.get("patient_name") || "";
 
     setTimeout(async () => {
-      // 1) abre o modal
       openModal();
       setDefaultTimes();
 
-      // 2) preenche paciente (id + nome)
       if (prePatientId && patientId) patientId.value = prePatientId;
-      if (prePatientName && patientSearch) {
-        patientSearch.value = decodeURIComponent(prePatientName);
-      }
+      if (prePatientName && patientSearch) patientSearch.value = decodeURIComponent(prePatientName);
 
-      // 3) aplica cor e profissional vindos do banco
       await applyPatientDefaultsById(prePatientId);
 
-      // 4) esconde sugestão
       if (patientSuggest) patientSuggest.style.display = "none";
 
-      // 5) limpa a URL
       history.replaceState(null, "", "agenda.html");
     }, 300);
   });
 
-
-    // =============================================================================
-  // REALTIME (Global)
+  // =============================================================================
+  // REALTIME
   // =============================================================================
   const RT = window.CorneliusRealtime;
-  if (RT && typeof refresh === "function") {
-    RT.on("appointments:change", () => refresh());
-    RT.on("patients:change", () => refresh());
-    RT.on("professionals:change", () => refresh());
-    RT.on("realtime:reconnected", () => refresh());
+  if (RT) {
+    if (isProfessional) {
+      RT.on("appointments:change", (payload) => {
+        const pid = payload?.new?.professional_id || payload?.old?.professional_id || null;
+        if (lockedProfessionalId && pid && pid !== lockedProfessionalId) return;
+        refresh();
+      });
+    } else {
+      RT.on("appointments:change", () => refresh());
+      RT.on("patients:change", () => refresh());
+      RT.on("professionals:change", () => refresh());
+      RT.on("realtime:reconnected", () => refresh());
+    }
   }
 
   // -----------------------------
   // Boot
   // -----------------------------
-  refresh();
+  (async () => {
+    await resolveProfessionalLock();
+    await refresh();
+  })();
 })();

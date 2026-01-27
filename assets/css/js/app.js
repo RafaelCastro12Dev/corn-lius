@@ -3,6 +3,38 @@
 
 if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
 
+  // ============================
+  // ROLE (admin x professional)
+  // ============================
+  (async function loadUserRole() {
+    try {
+      const { data: userRes } = await supabaseClient.auth.getUser();
+      const user = userRes?.user;
+      if (!user) {
+        window.CorneliusRole = "professional";
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error || !data?.role) {
+        window.CorneliusRole = "professional";
+        console.warn("⚠️ Role não encontrado; assumindo professional.");
+        return;
+      }
+
+      window.CorneliusRole = data.role; // "admin" | "professional"
+      console.log("👤 Role carregado:", window.CorneliusRole);
+    } catch (e) {
+      window.CorneliusRole = "professional";
+      console.error("❌ Erro ao carregar role:", e);
+    }
+  })();
+
 
   const STORAGE_KEY = "cornelius_clinica_v1";
 

@@ -915,6 +915,63 @@ async function getAttestationsByPatient(patientId) {
     }
   }
 
+  // ==============================
+// Vincular Auth (email) -> Professional (id)
+// ==============================
+async function getMyProfessional() {
+  const { data: { user }, error: userErr } = await sb.auth.getUser();
+  if (userErr) throw userErr;
+
+  const email = (user?.email || "").toLowerCase().trim();
+  if (!email) throw new Error("Usuário logado sem email no Auth.");
+
+  // Ajuste o nome da coluna se você usa outro campo.
+  const { data, error } = await sb
+    .from("professionals")
+    .select("*")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("Nenhum profissional encontrado com este email em professionals.");
+
+  return data; // contém data.id, data.name, etc.
+}
+
+async function getMyProfessionalId() {
+  const prof = await getMyProfessional();
+  return prof.id;
+}
+
+// ==============================
+// Agendamentos filtrados (range + professional)
+// ==============================
+async function getAppointmentsRange(startISO, endISO, professionalId = null) {
+  try {
+    let q = sb
+      .from("appointments")
+      .select(`
+        *,
+        patient:patients(*),
+        professional:professionals(*)
+      `)
+      .gte("start_time", startISO)
+      .lt("start_time", endISO)
+      .order("start_time", { ascending: true });
+
+    if (professionalId) {
+      q = q.eq("professional_id", professionalId);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("❌ Erro ao buscar agendamentos (range):", err);
+    return [];
+  }
+}
+
   // ============================================================================
   // EXPORTAR API
   // ============================================================================
@@ -967,7 +1024,11 @@ async function getAttestationsByPatient(patientId) {
     deleteAppointment,
     getAppointmentsByPatient,
     getUpcomingAppointments,
+    getAppointmentsRange,
 
+// Auxiliares / vínculo
+  getMyProfessional,
+  getMyProfessionalId,
     // Anotações clínicas
     getClinicalNotesByPatient,
     addClinicalNote,

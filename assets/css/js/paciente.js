@@ -11,7 +11,8 @@
   "use strict";
 
   // Proteção de acesso (login)
-  if (window.CorneliusAuth && !window.CorneliusAuth.requireAuth()) return;
+  if (window.CorneliusAuth && !window.CorneliusAuth.requireRole("admin")) return;
+
 
   const C = window.Cornelius;
 
