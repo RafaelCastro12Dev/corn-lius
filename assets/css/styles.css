@@ -656,7 +656,7 @@ input[type="checkbox"] {
   border: 1.5px solid var(--border);
   border-radius: 24px;
   box-shadow: var(--shadow-xl);
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   animation: slideUp var(--transition-slow);
@@ -694,6 +694,7 @@ input[type="checkbox"] {
   padding: 20px 24px;
   overflow-y: auto;
   flex: 1;
+  max-height: calc(90vh - 160px); 
 }
 
 .modal .body::-webkit-scrollbar {
@@ -1528,6 +1529,64 @@ input[type="checkbox"] {
 .btn-ghost.is-on {
   background: rgba(191,243,208,0.60);
   border-color: rgba(16,42,38,0.30);
+}
+
+
+/* ===== CALENDÁRIO COMPLETO - HORÁRIOS 8H-18H ===== */
+
+/* 1) Garante scroll vertical da página */
+body { overflow-y: auto !important; }
+
+/* 2) Remove limitações de altura - calendário completo visível */
+#calendar .fc-view-harness {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 600px;
+}
+
+/* 3) Remove scroll interno - mostra tudo de uma vez */
+#calendar .fc-scroller,
+#calendar .fc-scroller-liquid-absolute {
+  overflow-y: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* 4) Grid de tempo visível completamente */
+#calendar .fc-timegrid-body {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+#calendar .fc-timegrid-body .fc-scroller {
+  overflow: visible !important;
+}
+
+/* 5) Altura adequada para cada slot de 30min */
+#calendar .fc-timegrid-slot {
+  height: 50px !important;
+  min-height: 50px;
+}
+
+/* 6) Linha de horário atual mais visível */
+#calendar .fc-timegrid-now-indicator-line {
+  border-width: 2px !important;
+  z-index: 10;
+}
+
+/* 7) Eventos com altura mínima adequada */
+#calendar .ce-event.fc-event {
+  min-height: 45px !important;
+}
+
+/* 8) Container sem limites */
+#calendar {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.fc-scroller-harness {
+  overflow: visible !important;
 }
 
 /* ============================

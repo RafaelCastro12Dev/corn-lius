@@ -129,10 +129,6 @@
                 <label for="startAt">Data/hora início *</label>
                 <input id="startAt" type="datetime-local" required/>
               </div>
-              <div class="field">
-                <label for="endAt">Data/hora fim *</label>
-                <input id="endAt" type="datetime-local" required/>
-              </div>
             </div>
 
             <!-- MODO MULTIPLO (novo) -->
@@ -199,7 +195,10 @@
             <div class="actions">
               <button class="btn" id="btnCancel" type="button">Cancelar</button>
               <!-- ✅ submit => Enter salva -->
-              <button class="btn primary" id="btnSave" type="submit">Salvar agendamento</button>
+              <button id="btnSave" type="submit" class="btn">
+  Salvar agendamento
+</button>
+
             </div>
           </footer>
         </form>

@@ -40,7 +40,6 @@
   const professionalFilter = document.getElementById("professionalFilter");
 
   const startAt = document.getElementById("startAt");
-  const endAt = document.getElementById("endAt");
   const color = document.getElementById("color");
   const notes = document.getElementById("notes");
   const apptRoom = document.getElementById("apptRoom");
@@ -104,7 +103,6 @@
     end.setHours(10, 0, 0, 0);
 
     if (startAt) startAt.value = toDatetimeLocalValue(start);
-    if (endAt) endAt.value = toDatetimeLocalValue(end);
   }
 
   function debounce(fn, delay = 250) {
@@ -235,7 +233,6 @@
     const firstStart = multiList.querySelector("[data-mstart]");
     const firstEnd = multiList.querySelector("[data-mend]");
     if (firstStart && startAt?.value) firstStart.value = startAt.value;
-    if (firstEnd && endAt?.value) firstEnd.value = endAt.value;
   }
 
   if (multiMode) {
@@ -268,7 +265,6 @@
 
     if (professionalSelect) professionalSelect.value = "";
     if (startAt) startAt.value = "";
-    if (endAt) endAt.value = "";
     if (color) color.value = "#2A9D8F";
     if (notes) notes.value = "";
     if (apptRoom) apptRoom.value = "";
@@ -515,7 +511,6 @@
           id: a.id,
           title,
           start: a.start_time,
-          end: a.end_time,
           color: eventColor,
           extendedProps: {
             patientId: a.patient_id,
@@ -644,7 +639,6 @@
         if (isReadOnly) return;
         openModal();
         if (startAt) startAt.value = toDatetimeLocalValue(info.start);
-        if (endAt) endAt.value = toDatetimeLocalValue(info.end);
       },
 
       eventClick: async function (info) {
@@ -667,7 +661,6 @@
 
         if (professionalSelect) professionalSelect.value = event.extendedProps.professionalId || "";
         if (startAt) startAt.value = toDatetimeLocalValue(event.start);
-        if (endAt) endAt.value = event.end ? toDatetimeLocalValue(event.end) : "";
         if (color) color.value = event.backgroundColor || "#2A9D8F";
         if (notes) notes.value = event.extendedProps.notes || "";
         if (apptRoom) apptRoom.value = event.extendedProps.room || "";
@@ -702,35 +695,32 @@
   // -----------------------------
   // Validação
   // -----------------------------
-  function validateForm() {
-    const patientIdValue = patientId?.value || "";
-    const professionalId = professionalSelect?.value || "";
-    const start = startAt?.value || "";
-    const end = endAt?.value || "";
+ function validateForm() {
+  const patientIdValue = patientId?.value || "";
+  const professionalId = professionalSelect?.value || "";
+  const start = startAt?.value || "";
 
-    if (!patientIdValue) return toast("⚠️ Selecione um paciente"), null;
-    if (!professionalId) return toast("⚠️ Selecione um profissional"), null;
-    if (!start || !end) return toast("⚠️ Preencha início e fim"), null;
+  if (!patientIdValue) return toast("⚠️ Selecione um paciente"), null;
+  if (!professionalId) return toast("⚠️ Selecione um profissional"), null;
+  if (!start) return toast("⚠️ Preencha a data/hora de início"), null;
 
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+  const startDate = new Date(start);
+  if (isNaN(startDate.getTime())) return toast("⚠️ Data/hora inválida"), null;
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return toast("⚠️ Data/hora inválida"), null;
-    if (endDate <= startDate) return toast("⚠️ Fim deve ser após início"), null;
+  const dateYmd = ymdLocal(startDate);
+  if (blockedHolidays.includes(dateYmd))
+    return toast("⚠️ Não é possível agendar em feriado nacional"), null;
 
-    const dateYmd = ymdLocal(startDate);
-    if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Não é possível agendar em feriado nacional"), null;
+  return {
+    patient_id: patientIdValue,
+    professional_id: professionalId,
+    start_time: startDate.toISOString(),
+    room: (apptRoom?.value || "").trim(),
+    color: (color?.value || "") || "#2A9D8F",
+    notes: (notes?.value || "").trim(),
+  };
+}
 
-    return {
-      patient_id: patientIdValue,
-      professional_id: professionalId,
-      start_time: startDate.toISOString(),
-      end_time: endDate.toISOString(),
-      room: (apptRoom?.value || "").trim(),
-      color: (color?.value || "") || "#2A9D8F",
-      notes: (notes?.value || "").trim(),
-    };
-  }
 
   async function saveSingle() {
     const data = validateForm();
@@ -739,8 +729,6 @@
     if (editingId) await C.updateAppointment(editingId, data);
     else await C.addAppointment(data);
 
-    closeModal();
-    await refresh();
   }
 
   async function saveSmart() {
@@ -773,7 +761,6 @@
         const dateYmd = ymdLocal(sDate);
         if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Um dos agendamentos cai em feriado nacional.");
 
-        payloads.push({ ...base, start_time: sDate.toISOString(), end_time: eDate.toISOString() });
       }
 
       for (const p of payloads) await C.addAppointment(p);
@@ -782,9 +769,16 @@
       await refresh();
       toast(`✅ ${payloads.length} agendamentos criados.`);
     } catch (err) {
-      console.error("❌ Erro ao salvar:", err);
-      toast("❌ Erro ao salvar agendamento");
-    }
+  if (err?.code === "23505") {
+    toast("⚠️ Já existe um agendamento nesse horário para este paciente.");
+    closeModal();
+    return;
+  }
+
+  console.error(err);
+  toast("Erro ao salvar agendamento");
+}
+
   }
 
   async function deleteAppointment() {
@@ -833,7 +827,11 @@
     });
   }
 
-  if (btnSave) btnSave.addEventListener("click", saveSmart);
+  appointmentForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await saveSmart();
+});
+
   if (btnDelete) btnDelete.addEventListener("click", deleteAppointment);
 
   if (professionalFilter && !isProfessional) {
@@ -916,7 +914,14 @@
         refresh();
       });
     } else {
-      RT.on("appointments:change", () => refresh());
+      RT.on("appointments:change", async () => {
+  if (calendar) {
+    calendar.destroy();
+    calendar = null;
+  }
+  await renderCalendar();
+});
+
       RT.on("patients:change", () => refresh());
       RT.on("professionals:change", () => refresh());
       RT.on("realtime:reconnected", () => refresh());
