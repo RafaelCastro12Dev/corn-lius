@@ -7,6 +7,13 @@
  * - Realtime ignora eventos de outros profissionais
  * - FIX: hora não “anda” ao editar (datetime-local em hora local, não UTC)
  * - VISUAL: cards mais premium + sala pequena ao lado do horário + grid mais consistente
+ *
+ * ✅ Correções aplicadas (sem refatorar o resto):
+ * - Removeu END (fim) do agendamento ÚNICO (validateForm não usa end)
+ * - Removeu END (fim) do agendamento MÚLTIPLO (sem data-mend / ends)
+ * - Modal fecha sempre no salvar (closeModal no finally)
+ * - Trava anti-duplo-salvar (isSaving)
+ * - Tratamento amigável de duplicidade (23505) por causa do índice UNIQUE
  */
 
 (function () {
@@ -58,6 +65,9 @@
   let editingId = null;
   let blockedHolidays = [];
 
+  // Anti duplo submit/click
+  let isSaving = false;
+
   // -----------------------------
   // Acesso (admin x professional)
   // -----------------------------
@@ -99,8 +109,6 @@
     const now = new Date();
     const start = new Date(now);
     start.setHours(9, 0, 0, 0);
-    const end = new Date(start);
-    end.setHours(10, 0, 0, 0);
 
     if (startAt) startAt.value = toDatetimeLocalValue(start);
   }
@@ -204,6 +212,7 @@
     if (multiList) multiList.innerHTML = "";
   }
 
+  // ✅ Multi agora é somente INÍCIO (sem fim)
   function buildMultiRows(n) {
     if (!multiList) return;
     multiList.innerHTML = "";
@@ -214,7 +223,7 @@
       const row = document.createElement("div");
       row.className = "row";
       row.style.display = "grid";
-      row.style.gridTemplateColumns = "1fr 1fr";
+      row.style.gridTemplateColumns = "1fr";
       row.style.gap = "12px";
 
       row.innerHTML = `
@@ -222,16 +231,11 @@
           <label class="label">Início #${i + 1}</label>
           <input class="input" type="datetime-local" data-mstart>
         </div>
-        <div>
-          <label class="label">Fim #${i + 1}</label>
-          <input class="input" type="datetime-local" data-mend>
-        </div>
       `;
       multiList.appendChild(row);
     }
 
     const firstStart = multiList.querySelector("[data-mstart]");
-    const firstEnd = multiList.querySelector("[data-mend]");
     if (firstStart && startAt?.value) firstStart.value = startAt.value;
   }
 
@@ -503,7 +507,6 @@
         const p = patientMap[a.patient_id];
         const pro = professionalMap[a.professional_id];
 
-        // título base (sem sala)
         const title = `${p ? p.name : "Paciente"}${pro ? " — " + pro.name : ""}`;
         const eventColor = a.color || (p ? p.color : null) || "#2A9D8F";
 
@@ -554,13 +557,11 @@
       },
       buttonText: { today: "Hoje", month: "Mês", week: "Semana", day: "Dia" },
 
-      // Grid mais consistente
       slotDuration: "00:30:00",
       slotLabelInterval: "01:00",
       slotMinTime: "07:00:00",
       slotMaxTime: "21:00:00",
 
-      // Melhor leitura
       height: "auto",
       expandRows: true,
       stickyHeaderDates: true,
@@ -570,13 +571,11 @@
       selectable: !isReadOnly,
       editable: false,
 
-      // Evita sobreposição
       slotEventOverlap: false,
       eventOverlap: false,
       eventDisplay: "block",
       dayMaxEvents: true,
 
-      // “toque” de card
       eventMinHeight: 32,
       eventShortHeight: 32,
       eventMaxStack: 4,
@@ -586,31 +585,28 @@
 
       events,
 
-      // Conteúdo premium: hora + sala pequena + título com quebra
-     eventContent: function (arg) {
-  const props = arg.event.extendedProps || {};
-  const patientName = props.patientName || "Paciente";
-  const professionalName = props.professionalName || "";
-  const room = props.room || "";
+      eventContent: function (arg) {
+        const props = arg.event.extendedProps || {};
+        const patientName = props.patientName || "Paciente";
+        const professionalName = props.professionalName || "";
+        const room = props.room || "";
 
-  const line1 = professionalName ? `${patientName} — ${professionalName}` : patientName;
-  const roomNum = String(room).replace(/[^0-9]/g, "") || room;
+        const line1 = professionalName ? `${patientName} — ${professionalName}` : patientName;
+        const roomNum = String(room).replace(/[^0-9]/g, "") || room;
 
-  return {
-    html: `
-      <div>
-        <div class="ce-top">
-          <span class="ce-time">${arg.timeText}</span>
-          ${room ? `<span class="ce-room">S${C.escapeHtml(roomNum)}</span>` : ""}
-        </div>
-        <div class="ce-title">${C.escapeHtml(line1)}</div>
-      </div>
-    `
-  };
-},
+        return {
+          html: `
+            <div>
+              <div class="ce-top">
+                <span class="ce-time">${arg.timeText}</span>
+                ${room ? `<span class="ce-room">S${C.escapeHtml(roomNum)}</span>` : ""}
+              </div>
+              <div class="ce-title">${C.escapeHtml(line1)}</div>
+            </div>
+          `
+        };
+      },
 
-
-      // Estilo premium e hover suave
       eventDidMount: function (info) {
         const el = info.el;
 
@@ -618,13 +614,11 @@
         el.style.border = "1px solid rgba(0,0,0,0.10)";
         el.style.overflow = "hidden";
         el.style.boxShadow = "0 6px 16px rgba(0,0,0,0.10)";
-
         el.style.transition = "transform .12s ease, box-shadow .12s ease";
 
         const main = el.querySelector(".fc-event-main");
         if (main) main.style.padding = "8px 10px";
 
-        // Hover “levanta”
         el.addEventListener("mouseenter", () => {
           el.style.transform = "translateY(-1px)";
           el.style.boxShadow = "0 10px 22px rgba(0,0,0,0.14)";
@@ -693,34 +687,32 @@
   }
 
   // -----------------------------
-  // Validação
+  // Validação (SEM END)
   // -----------------------------
- function validateForm() {
-  const patientIdValue = patientId?.value || "";
-  const professionalId = professionalSelect?.value || "";
-  const start = startAt?.value || "";
+  function validateForm() {
+    const patientIdValue = patientId?.value || "";
+    const professionalId = professionalSelect?.value || "";
+    const start = startAt?.value || "";
 
-  if (!patientIdValue) return toast("⚠️ Selecione um paciente"), null;
-  if (!professionalId) return toast("⚠️ Selecione um profissional"), null;
-  if (!start) return toast("⚠️ Preencha a data/hora de início"), null;
+    if (!patientIdValue) return toast("⚠️ Selecione um paciente"), null;
+    if (!professionalId) return toast("⚠️ Selecione um profissional"), null;
+    if (!start) return toast("⚠️ Preencha a data/hora de início"), null;
 
-  const startDate = new Date(start);
-  if (isNaN(startDate.getTime())) return toast("⚠️ Data/hora inválida"), null;
+    const startDate = new Date(start);
+    if (isNaN(startDate.getTime())) return toast("⚠️ Data/hora inválida"), null;
 
-  const dateYmd = ymdLocal(startDate);
-  if (blockedHolidays.includes(dateYmd))
-    return toast("⚠️ Não é possível agendar em feriado nacional"), null;
+    const dateYmd = ymdLocal(startDate);
+    if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Não é possível agendar em feriado nacional"), null;
 
-  return {
-    patient_id: patientIdValue,
-    professional_id: professionalId,
-    start_time: startDate.toISOString(),
-    room: (apptRoom?.value || "").trim(),
-    color: (color?.value || "") || "#2A9D8F",
-    notes: (notes?.value || "").trim(),
-  };
-}
-
+    return {
+      patient_id: patientIdValue,
+      professional_id: professionalId,
+      start_time: startDate.toISOString(),
+      room: (apptRoom?.value || "").trim(),
+      color: (color?.value || "") || "#2A9D8F",
+      notes: (notes?.value || "").trim(),
+    };
+  }
 
   async function saveSingle() {
     const data = validateForm();
@@ -728,19 +720,29 @@
 
     if (editingId) await C.updateAppointment(editingId, data);
     else await C.addAppointment(data);
-
   }
 
   async function saveSmart() {
+    if (isSaving) return;
+    isSaving = true;
+
     try {
-      if (editingId) return await saveSingle();
+      if (editingId) {
+        await saveSingle();
+        toast("✅ Agendamento atualizado.");
+        return;
+      }
 
       const isMulti = !!(multiMode && multiMode.checked);
-      if (!isMulti) return await saveSingle();
+      if (!isMulti) {
+        await saveSingle();
+        toast("✅ Agendamento criado.");
+        return;
+      }
 
+      // ✅ Multi: somente inícios
       const starts = Array.from(multiList?.querySelectorAll("[data-mstart]") || []);
-      const ends = Array.from(multiList?.querySelectorAll("[data-mend]") || []);
-      if (!starts.length || !ends.length) return toast("⚠️ Clique em 'Gerar campos' e preencha os horários.");
+      if (!starts.length) return toast("⚠️ Clique em 'Gerar campos' e preencha os horários.");
 
       const base = validateForm();
       if (!base) return;
@@ -749,36 +751,39 @@
 
       for (let i = 0; i < starts.length; i++) {
         const s = (starts[i].value || "").trim();
-        const e = (ends[i]?.value || "").trim();
-        if (!s || !e) return toast("⚠️ Preencha início e fim de todos os agendamentos.");
+        if (!s) return toast("⚠️ Preencha todos os horários.");
 
         const sDate = new Date(s);
-        const eDate = new Date(e);
-
-        if (isNaN(sDate.getTime()) || isNaN(eDate.getTime())) return toast("⚠️ Datas inválidas no agendamento múltiplo.");
-        if (eDate <= sDate) return toast("⚠️ Em um dos itens, o fim é antes do início.");
+        if (isNaN(sDate.getTime())) return toast("⚠️ Datas inválidas no agendamento múltiplo.");
 
         const dateYmd = ymdLocal(sDate);
         if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Um dos agendamentos cai em feriado nacional.");
 
+        payloads.push({ ...base, start_time: sDate.toISOString() });
       }
 
       for (const p of payloads) await C.addAppointment(p);
 
-      closeModal();
-      await refresh();
       toast(`✅ ${payloads.length} agendamentos criados.`);
     } catch (err) {
-  if (err?.code === "23505") {
-    toast("⚠️ Já existe um agendamento nesse horário para este paciente.");
-    closeModal();
-    return;
-  }
+      // Índice UNIQUE -> 23505 (duplicidade)
+      const code = err?.code || err?.error?.code;
+      const msg = (err?.message || err?.error?.message || "").toString().toLowerCase();
 
-  console.error(err);
-  toast("Erro ao salvar agendamento");
-}
+      if (code === "23505" || msg.includes("duplicate") || msg.includes("unique")) {
+        toast("⚠️ Já existe um agendamento nesse horário para este paciente/profissional.");
+        return;
+      }
 
+      console.error("❌ Erro ao salvar:", err);
+      toast("❌ Erro ao salvar agendamento");
+    } finally {
+      isSaving = false;
+      closeModal();
+      // Mantém o comportamento atual: atualizar na tela
+      // (se seu realtime já dá refresh, isso só garante feedback imediato)
+      await refresh();
+    }
   }
 
   async function deleteAppointment() {
@@ -789,11 +794,14 @@
 
     try {
       await C.deleteAppointment(editingId);
-      closeModal();
-      await refresh();
+      toast("🗑️ Agendamento removido.");
     } catch (err) {
       console.error("❌ Erro ao deletar:", err);
       toast("❌ Erro ao remover agendamento");
+      return;
+    } finally {
+      closeModal();
+      await refresh();
     }
   }
 
@@ -827,10 +835,9 @@
     });
   }
 
-  appointmentForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  await saveSmart();
-});
+  // ❗ não amarra click no btnSave para evitar duplo-submit:
+  // (o submit do form já cuida)
+  // if (btnSave) btnSave.addEventListener("click", saveSmart);
 
   if (btnDelete) btnDelete.addEventListener("click", deleteAppointment);
 
@@ -914,14 +921,7 @@
         refresh();
       });
     } else {
-      RT.on("appointments:change", async () => {
-  if (calendar) {
-    calendar.destroy();
-    calendar = null;
-  }
-  await renderCalendar();
-});
-
+      RT.on("appointments:change", () => refresh());
       RT.on("patients:change", () => refresh());
       RT.on("professionals:change", () => refresh());
       RT.on("realtime:reconnected", () => refresh());
