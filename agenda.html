@@ -29,6 +29,7 @@
         <a href="cadastro.html" data-admin-only>Cadastro</a>
 <a href="profissionais.html" data-admin-only>Profissionais</a>
 <a href="impressoes.html" data-admin-only>Impressões</a>
+<a href="#" id="btnLogout">Sair</a>
 
       </nav>
     </div>
@@ -122,6 +123,15 @@
                 <option value="Sala 3">Sala 3</option>
               </select>
             </div>
+            <!-- Presença -->
+<div class="field">
+  <label for="attendanceStatus">Presença</label>
+  <select id="attendanceStatus" name="attendanceStatus">
+    <option value="pending">Pendente</option>
+    <option value="present">Compareceu</option>
+    <option value="absent">Faltou</option>
+  </select>
+</div>
 
             <!-- Data e hora -->
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">

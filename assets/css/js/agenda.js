@@ -50,6 +50,7 @@
   const color = document.getElementById("color");
   const notes = document.getElementById("notes");
   const apptRoom = document.getElementById("apptRoom");
+const attendanceStatus = document.getElementById("attendanceStatus");
 
   // Multi (pode não existir no HTML)
   const multiMode = document.getElementById("multiMode");
@@ -261,6 +262,7 @@
 
     if (patientSearch) patientSearch.value = "";
     if (patientId) patientId.value = "";
+if (attendanceStatus) attendanceStatus.value = "pending";
 
     if (patientSuggest) {
       patientSuggest.style.display = "none";
@@ -522,6 +524,8 @@
             room: a.room,
             patientName: p ? p.name : "Paciente",
             professionalName: pro ? pro.name : "",
+            attendance_status: a.attendance_status,
+
           },
         });
       });
@@ -592,19 +596,27 @@
         const room = props.room || "";
 
         const line1 = professionalName ? `${patientName} — ${professionalName}` : patientName;
-        const roomNum = String(room).replace(/[^0-9]/g, "") || room;
+       const roomDigits = String(room).replace(/[^0-9]/g, "");
+const roomLabel = roomDigits ? `S${roomDigits}` : String(room);
 
-        return {
-          html: `
-            <div>
-              <div class="ce-top">
-                <span class="ce-time">${arg.timeText}</span>
-                ${room ? `<span class="ce-room">S${C.escapeHtml(roomNum)}</span>` : ""}
-              </div>
-              <div class="ce-title">${C.escapeHtml(line1)}</div>
-            </div>
-          `
-        };
+// ✅ presença (novo)
+const att = (props.attendance_status || "pending").toString();
+const attIcon =
+  att === "present" ? "✅" :
+  att === "absent"  ? "❌" :
+  "⏳";
+
+return {
+  html: `
+    <div>
+      <div class="ce-top">
+        <span class="ce-time">${arg.timeText}</span>
+        ${room ? `<span class="ce-room">${C.escapeHtml(roomLabel)} <span class="ce-att" title="${C.escapeHtml(att)}">${attIcon}</span></span>` : ""}
+      </div>
+      <div class="ce-title">${C.escapeHtml(line1)}</div>
+    </div>
+  `
+};
       },
 
       eventDidMount: function (info) {
@@ -659,6 +671,11 @@
         if (notes) notes.value = event.extendedProps.notes || "";
         if (apptRoom) apptRoom.value = event.extendedProps.room || "";
 
+        if (attendanceStatus) {
+  attendanceStatus.value = event.extendedProps.attendance_status || "pending";
+}
+
+
         if (btnDelete) btnDelete.style.display = "inline-flex";
 
         if (modalBackdrop) {
@@ -711,6 +728,7 @@
       room: (apptRoom?.value || "").trim(),
       color: (color?.value || "") || "#2A9D8F",
       notes: (notes?.value || "").trim(),
+      attendance_status: (attendanceStatus?.value || "pending"),
     };
   }
 

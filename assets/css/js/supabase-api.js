@@ -368,7 +368,7 @@
   }
 
  async function deletePatientPermanent(patientId) {
-  const { error } = await supabaseClient
+  const { error } = await sb
     .from("patients")
     .delete()
     .eq("id", patientId);
@@ -531,6 +531,7 @@
         start_time: appt.start_time || appt.start,
         end_time: appt.end_time || appt.end,
         room: appt.room || "",
+        attendance_status: appt.attendance_status || appt.attendanceStatus || "pending",
         color: appt.color || "#2A9D8F",
         notes: appt.notes || "",
         created_at: new Date().toISOString(),

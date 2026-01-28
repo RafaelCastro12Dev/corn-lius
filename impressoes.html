@@ -29,6 +29,7 @@
         <a href="cadastro.html"data-admin-only>Cadastro</a>
         <a href="profissionais.html"data-admin-only>Profissionais</a>
         <a class="active" href="impressoes.html"data-admin-only>Impressões</a>
+        <a href="#" id="btnLogout">Sair</a>
       </nav>
     </div>
   </div>
@@ -41,8 +42,8 @@
 
     <section class="card">
       <div class="card-header">
-        <h2>Atestado</h2>
-        <p class="muted">Digite o texto, salve e gere o PDF para imprimir/salvar.</p>
+        <h2 id="docTitle">Atestado</h2>
+        <p id="docSubtitle" class="muted">Digite o texto, salve e gere o PDF para imprimir/salvar.</p>
       </div>
 
       <form id="attForm" class="form-grid">
@@ -73,6 +74,15 @@
             <option value="">Selecione...</option>
           </select>
         </div>
+
+        <div class="field">
+          <label for="docType">Tipo do documento</label>
+          <select id="docType" required>
+            <option value="atestado">Atestado</option>
+            <option value="relatorio">Relatório</option>
+            <option value="declaracao">Declaração</option>
+          </select>
+        </div>
 <div id="professionalCrpInfo" class="text-sm text-secondary" style="margin-top:6px; display:none;"></div>
         <div class="field">
           <label for="docDate">Data</label>
@@ -95,7 +105,7 @@
         </div>
 
         <div class="field" style="grid-column: 1 / -1;">
-          <label for="bodyText">Texto do atestado (a profissional escreve aqui)</label>
+          <label id="bodyLabel" for="bodyText">Texto do atestado (a profissional escreve aqui)</label>
           <textarea id="bodyText" rows="10" required placeholder="Digite o texto do atestado..."></textarea>
         </div>
 

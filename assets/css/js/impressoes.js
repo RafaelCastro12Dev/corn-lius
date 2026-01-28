@@ -39,6 +39,12 @@
   const historyEl = document.getElementById("history");
   const msg = document.getElementById("msg");
 
+  // Novos controles (tipo de documento)
+  const docType = document.getElementById("docType");
+  const docTitle = document.getElementById("docTitle");
+  const docSubtitle = document.getElementById("docSubtitle");
+  const bodyLabel = document.getElementById("bodyLabel");
+
   // Segurança mínima (evita erro se algum ID estiver faltando)
   const required = [
     ["patientSearch", patientSearch],
@@ -56,18 +62,19 @@
   ];
   const missing = required.filter(([, el]) => !el).map(([id]) => id);
   if (missing.length) {
-    console.error("❌ IDs faltando no impressoes.html:", missing);
-    alert("❌ Erro: IDs faltando no impressoes.html: " + missing.join(", "));
+    console.error("❌ IDs ausentes no impressoes.html:", missing);
+    alert("❌ Erro: IDs ausentes no impressoes.html:\n" + missing.join(", "));
     return;
   }
 
   // ============================================================================
-  // STATE
+  // ESTADO
   // ============================================================================
+  let patientsCache = [];
+  let professionalsCache = [];
   let lastSavedId = null;
 
-  let professionalsCache = [];
-  let selectedPatient = {
+  const selectedPatient = {
     id: "",
     name: "",
     cpf: "",
@@ -77,20 +84,37 @@
   // ============================================================================
   // HELPERS
   // ============================================================================
-  function cleanCPF(v) {
-    return String(v || "").replace(/\D/g, "");
+  function pad(n) {
+    return String(n).padStart(2, "0");
   }
 
-  function formatCPF(v) {
-    const c = cleanCPF(v);
-    if (c.length !== 11) return v ? String(v) : "";
-    return c.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  function escapeHtml(str) {
+    if (!str) return "";
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    // fallback RFC4122 v4
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  function formatCPF(cpf) {
+    cpf = String(cpf || "").replace(/\D/g, "");
+    if (cpf.length !== 11) return "";
+    return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}`;
   }
 
   function brDateFromYmd(ymd) {
-    if (!ymd) return "";
-    const [y, m, d] = String(ymd).split("-");
-    if (!y || !m || !d) return "";
+    const s = String(ymd || "").trim();
+    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return "";
+    const [y, m, d] = s.split("-");
     return `${d}/${m}/${y}`;
   }
 
@@ -106,32 +130,105 @@
     if (!patientCpfInfo) return;
     const cpf = formatCPF(selectedPatient.cpf);
     if (cpf) {
-      patientCpfInfo.textContent = `CPF: ${cpf}`;
       patientCpfInfo.style.display = "block";
+      patientCpfInfo.textContent = `CPF: ${cpf}`;
     } else {
-      patientCpfInfo.textContent = "";
       patientCpfInfo.style.display = "none";
+      patientCpfInfo.textContent = "";
     }
   }
 
   function updateProfessionalCrpUI() {
     if (!professionalCrpInfo) return;
-
-    const id = professionalSelect.value;
-    const prof = professionalsCache.find((p) => p.id === id);
-    const crp = prof?.crp ? String(prof.crp).trim() : "";
-
+    const profId = professionalSelect.value;
+    const p = professionalsCache.find((x) => x.id === profId);
+    const crp = (p?.crp ? String(p.crp).trim() : "");
     if (crp) {
-      professionalCrpInfo.textContent = `CRP: ${crp}`;
       professionalCrpInfo.style.display = "block";
+      professionalCrpInfo.textContent = `CRP: ${crp}`;
     } else {
-      professionalCrpInfo.textContent = "";
       professionalCrpInfo.style.display = "none";
+      professionalCrpInfo.textContent = "";
     }
   }
 
   function getSelectedProfessionalLabel() {
-    return professionalSelect.options[professionalSelect.selectedIndex]?.text || "";
+    return professionalSelect.options[
+      professionalSelect.selectedIndex]?.text || "";
+  }
+
+  function getDocMeta() {
+    const t = (docType?.value || "atestado").toString();
+    if (t === "relatorio") return { key: "relatorio", title: "Relatório" };
+    if (t === "declaracao") return { key: "declaracao", title: "Declaração" };
+    return { key: "atestado", title: "Atestado" };
+  }
+
+  function buildDefaultDeclaracaoText() {
+    const pName = (selectedPatient.name || patientSearch.value || "").trim();
+    const dateBR = brDateFromYmd(docDate.value);
+    const profLabel = getSelectedProfessionalLabel();
+
+    return `DECLARAÇÃO
+
+Declaro para os devidos fins que ${pName || "[PACIENTE]"} compareceu nesta clínica na data de ${dateBR || "[DATA]"}.
+
+${profLabel ? `Profissional: ${profLabel}` : ""}
+
+____________________________________
+Assinatura e carimbo`;
+  }
+
+  function buildDefaultRelatorioText() {
+    const pName = (selectedPatient.name || patientSearch.value || "").trim();
+    const dateBR = brDateFromYmd(docDate.value);
+    const profLabel = getSelectedProfessionalLabel();
+
+    return `RELATÓRIO
+
+Paciente: ${pName || "[PACIENTE]"}
+Data: ${dateBR || "[DATA]"}
+
+1) Queixa principal / Demanda:
+- 
+
+2) Procedimentos / Intervenções realizadas:
+- 
+
+3) Evolução / Observações:
+- 
+
+4) Recomendações:
+- 
+
+${profLabel ? `Profissional: ${profLabel}` : ""}
+
+____________________________________
+Assinatura e carimbo`;
+  }
+
+  function buildDefaultBodyText() {
+    const meta = getDocMeta();
+    if (meta.key === "relatorio") return buildDefaultRelatorioText();
+    if (meta.key === "declaracao") return buildDefaultDeclaracaoText();
+    return buildDefaultAttestationText();
+  }
+
+  function applyDocUi() {
+    if (!docType) return;
+    const meta = getDocMeta();
+
+    if (docTitle) docTitle.textContent = meta.title;
+    if (docSubtitle) docSubtitle.textContent = "Digite o texto, salve e gere o PDF para imprimir/salvar.";
+
+    if (bodyLabel) {
+      bodyLabel.textContent =
+        meta.key === "relatorio"
+          ? "Texto do relatório (a profissional escreve aqui)"
+          : meta.key === "declaracao"
+            ? "Texto da declaração (a profissional escreve aqui)"
+            : "Texto do atestado (a profissional escreve aqui)";
+    }
   }
 
   function buildDefaultAttestationText() {
@@ -160,11 +257,11 @@ Assinatura e carimbo`;
   function ensureDefaultTextIfEmpty() {
     const current = String(bodyText.value || "").trim();
     if (current) return;
-    bodyText.value = buildDefaultAttestationText();
+    bodyText.value = buildDefaultBodyText();
   }
 
   function forceModel() {
-    bodyText.value = buildDefaultAttestationText();
+    bodyText.value = buildDefaultBodyText();
   }
 
   // ============================================================================
@@ -176,79 +273,84 @@ Assinatura e carimbo`;
       patientSuggest.innerHTML = "";
       return;
     }
-
+    patientSuggest.style.display = "block";
     patientSuggest.innerHTML = items
+      .slice(0, 12)
       .map((p) => {
-        const cpf = formatCPF(p.cpf || "");
-        return `
-          <div class="item"
-            data-id="${p.id}"
-            data-name="${C.escapeHtml(p.name || "")}"
-            data-cpf="${C.escapeHtml(p.cpf || "")}"
-            data-professional-id="${p.assigned_professional_id || ""}">
-            <strong>${C.escapeHtml(p.name || "")}</strong>
-            <small>${C.escapeHtml(cpf)}</small>
-          </div>
-        `;
+        const cpf = formatCPF(p.cpf);
+        const extra = cpf ? ` <span class="muted">(${cpf})</span>` : "";
+        return `<div class="suggest-item" data-id="${p.id}">
+          <strong>${escapeHtml(p.name || "")}</strong>${extra}
+        </div>`;
       })
       .join("");
 
-    patientSuggest.style.display = "block";
+    patientSuggest.querySelectorAll(".suggest-item").forEach((el) => {
+      el.onclick = () => {
+        const pid = el.dataset.id;
+        const p = patientsCache.find((x) => x.id === pid);
+        if (!p) return;
+
+        selectedPatient.id = p.id;
+        selectedPatient.name = p.name || "";
+        selectedPatient.cpf = p.cpf || "";
+        selectedPatient.assigned_professional_id = p.assigned_professional_id || "";
+
+        patientSearch.value = selectedPatient.name;
+        patientId.value = selectedPatient.id;
+        showPatientSuggest([]);
+
+        showPatientCpfUI();
+
+        // Sugestão automática do profissional atribuído
+        const assignedProf = selectedPatient.assigned_professional_id;
+        if (assignedProf) {
+          professionalSelect.value = assignedProf;
+          updateProfessionalCrpUI();
+        }
+
+        ensureDefaultTextIfEmpty();
+        loadHistoryForPatient(pid);
+      };
+    });
   }
 
-  const runPatientSearch = debounce(async () => {
-    const term = patientSearch.value.trim();
+  async function loadPatientsCache() {
+    patientsCache = await C.getAllPatients();
+  }
 
-    // reset seleção
+  const onPatientInput = debounce(async () => {
+    const q = String(patientSearch.value || "").trim().toLowerCase();
+    selectedPatient.id = "";
+    selectedPatient.name = patientSearch.value || "";
+    selectedPatient.cpf = "";
+    selectedPatient.assigned_professional_id = "";
     patientId.value = "";
+
+    showPatientCpfUI();
     lastSavedId = null;
-    selectedPatient = { id: "", name: "", cpf: "", assigned_professional_id: "" };
-    showPatientCpfUI();
 
-    if (term.length < 2) {
-      showPatientSuggest([]);
-      return;
-    }
+    if (!q) return showPatientSuggest([]);
 
-    try {
-      const list = await C.searchPatients(term);
-      showPatientSuggest((list || []).slice(0, 15));
-    } catch (e) {
-      console.error("❌ Erro na busca de pacientes:", e);
-      showPatientSuggest([]);
-    }
-  }, 250);
+    const items = patientsCache.filter((p) => {
+      const name = String(p.name || "").toLowerCase();
+      const cpf = String(p.cpf || "").replace(/\D/g, "");
+      const qcpf = q.replace(/\D/g, "");
+      return name.includes(q) || (qcpf && cpf.includes(qcpf));
+    });
 
-  patientSearch.addEventListener("input", runPatientSearch);
+    showPatientSuggest(items);
+  }, 200);
 
-  patientSuggest.addEventListener("click", (ev) => {
-    const item = ev.target.closest(".item");
-    if (!item) return;
+  patientSearch.addEventListener("input", onPatientInput);
 
-    const pid = item.dataset.id || "";
-    const pname = item.dataset.name || "";
-    const pcpf = item.dataset.cpf || "";
-    const assignedProf = item.dataset.professionalId || "";
-
-    patientId.value = pid;
-    patientSearch.value = pname;
-    showPatientSuggest([]);
-
-    selectedPatient.id = pid;
-    selectedPatient.name = pname;
-    selectedPatient.cpf = pcpf;
-    selectedPatient.assigned_professional_id = assignedProf;
-
-    showPatientCpfUI();
-
-    // auto-preencher profissional do paciente (se existir)
-    if (assignedProf) {
-      professionalSelect.value = assignedProf;
-      updateProfessionalCrpUI();
-    }
-
-    ensureDefaultTextIfEmpty();
-    loadHistoryForPatient(pid);
+  patientSearch.addEventListener("focus", () => {
+    const q = String(patientSearch.value || "").trim().toLowerCase();
+    if (!q) return;
+    const items = patientsCache.filter((p) =>
+      String(p.name || "").toLowerCase().includes(q)
+    );
+    showPatientSuggest(items);
   });
 
   document.addEventListener("click", (e) => {
@@ -280,18 +382,32 @@ Assinatura e carimbo`;
     ensureDefaultTextIfEmpty();
   });
 
+  // Tipo do documento: atualiza UI e modelo
+  if (docType) {
+    docType.addEventListener("change", () => {
+      applyDocUi();
+      // Insere modelo apenas se estiver vazio (não sobrescreve texto já digitado)
+      const current = String(bodyText.value || "").trim();
+      if (!current) bodyText.value = buildDefaultBodyText();
+
+      // Recarrega histórico do tipo atual (se já houver paciente selecionado)
+      if (patientId.value) loadHistoryForPatient(patientId.value);
+    });
+  }
+
   // ============================================================================
   // SALVAR ATESTADO
   // ============================================================================
   async function saveAttestation() {
     msg.textContent = "Salvando...";
+    const meta = getDocMeta();
 
     if (!patientId.value || !professionalSelect.value || !docDate.value) {
       msg.textContent = "❌ Preencha paciente, profissional e data.";
       return;
     }
     if (!String(bodyText.value || "").trim()) {
-      msg.textContent = "❌ Digite o texto do atestado.";
+      msg.textContent = "❌ Digite o texto do documento.";
       return;
     }
 
@@ -299,7 +415,8 @@ Assinatura e carimbo`;
       patient_id: patientId.value,
       professional_id: professionalSelect.value,
       doc_date: docDate.value,
-      title: "Atestado",
+      title: meta.title,
+      doc_type: meta.key,
       body_text: String(bodyText.value || "").trim(),
       days_off: daysOff.value ? Number(daysOff.value) : null,
       start_date: startDate ? (startDate.value || null) : null,
@@ -312,11 +429,11 @@ Assinatura e carimbo`;
         : await C.addAttestation(payload);
 
       lastSavedId = saved.id;
-      msg.textContent = "✅ Atestado salvo com sucesso.";
+      msg.textContent = `✅ ${meta.title} salvo com sucesso.`;
       loadHistoryForPatient(patientId.value);
     } catch (e) {
-      console.error("❌ Erro ao salvar atestado:", e);
-      msg.textContent = "❌ Erro ao salvar atestado.";
+      console.error("❌ Erro ao salvar documento:", e);
+      msg.textContent = "❌ Erro ao salvar documento.";
     }
   }
 
@@ -328,9 +445,11 @@ Assinatura e carimbo`;
     if (!pid) return;
 
     try {
-      const rows = await C.getAttestationsByPatient(pid);
+      const meta = getDocMeta();
+      const allRows = await C.getAttestationsByPatient(pid);
+      const rows = (allRows || []).filter(r => (r.doc_type || "atestado") === meta.key);
       if (!rows.length) {
-        historyEl.innerHTML = `<p class="muted">Nenhum atestado emitido.</p>`;
+        historyEl.innerHTML = `<p class="muted">Nenhum ${meta.title.toLowerCase()} emitido.</p>`;
         return;
       }
 
@@ -367,7 +486,8 @@ Assinatura e carimbo`;
           await hydratePatientMeta(r.patient_id);
 
           updateProfessionalCrpUI();
-          msg.textContent = "✅ Atestado carregado.";
+          if (docType) { docType.value = (r.doc_type || "atestado"); applyDocUi(); }
+          msg.textContent = "✅ Documento carregado.";
         };
       });
 
@@ -385,7 +505,9 @@ Assinatura e carimbo`;
           bodyText.value = r.body_text || "";
 
           await hydratePatientMeta(r.patient_id);
-          updateProfessionalCrpUI();
+          updateProfessionalCrpUI(
+          );
+          if (docType) { docType.value = (r.doc_type || "atestado"); applyDocUi(); }
 
           await generatePdf();
         };
@@ -463,78 +585,48 @@ try {
       const fontSize = 12;
       const lineHeight = 16;
 
+      
+      function splitIntoLines(text, f, size, maxW) {
+        const words = String(text || "").split(/\s+/);
+        const lines = [];
+        let line = "";
+        for (const w of words) {
+          const test = line ? (line + " " + w) : w;
+          const width = f.widthOfTextAtSize(test, size);
+          if (width <= maxW) line = test;
+          else {
+            if (line) lines.push(line);
+            line = w;
+          }
+        }
+        if (line) lines.push(line);
+        return lines;
+      }
+
       function newPage() {
         page = pdf.addPage(pageSize);
         y = topY;
       }
 
       function drawTextLine(text, size = fontSize, bold = false) {
-        if (y < bottomY) newPage();
-        page.drawText(text, { x: marginX, y, size, font: bold ? fontBold : font });
-        y -= lineHeight;
-      }
-
-      function wrapLine(line, size = fontSize) {
-        const words = line.split(/\s+/).filter(Boolean);
-        if (!words.length) return [""];
-
-        const lines = [];
-        let current = "";
-
-        for (const w of words) {
-          const test = current ? `${current} ${w}` : w;
-          const width = (boldFont(false).widthOfTextAtSize(test, size));
-          if (width <= maxWidth) {
-            current = test;
-          } else {
-            if (current) lines.push(current);
-            current = w;
-          }
-        }
-        if (current) lines.push(current);
-        return lines;
-      }
-
-      function boldFont(isBold) {
-        return isBold ? fontBold : font;
-      }
-
-      function drawWrappedParagraph(text, size = fontSize, isBold = false) {
-        const f = boldFont(isBold);
-        const words = String(text || "").split(/\s+/).filter(Boolean);
-        if (!words.length) {
-          y -= lineHeight;
-          return;
-        }
-
-        let line = "";
-        for (const w of words) {
-          const test = line ? `${line} ${w}` : w;
-          const width = f.widthOfTextAtSize(test, size);
-
-          if (width <= maxWidth) {
-            line = test;
-          } else {
-            if (y < bottomY) newPage();
+        const f = bold ? fontBold : font;
+        const parts = String(text || "").split("\n");
+        for (const part of parts) {
+          const lines = splitIntoLines(part, f, size, maxWidth);
+          for (const line of lines) {
+            if (y <= bottomY) newPage();
             page.drawText(line, { x: marginX, y, size, font: f });
             y -= lineHeight;
-            line = w;
           }
-        }
-
-        if (line) {
-          if (y < bottomY) newPage();
-          page.drawText(line, { x: marginX, y, size, font: f });
-          y -= lineHeight;
+          y -= 4;
         }
       }
-
-      // Linha decorativa sutil (cor da logo)
 
       // --------------------
       // Cabeçalho fixo do PDF
       // --------------------
-      drawTextLine("ATESTADO", 16, true);
+      const meta = getDocMeta();
+      drawTextLine(meta.title.toUpperCase(), 16, true);
       y -= 6;
 
       const pName = (selectedPatient.name || patientSearch.value || "").trim();
@@ -543,54 +635,29 @@ try {
       const profName = (prof?.name || getSelectedProfessionalLabel() || "").trim();
       const profCrp = (prof?.crp ? String(prof.crp).trim() : "");
       const dateBR = brDateFromYmd(docDate.value);
-      const dOff = String(daysOff.value || "").trim();
 
-      drawWrappedParagraph(`Paciente: ${pName || "-"}`, 12, true);
-      drawWrappedParagraph(`CPF: ${pCpf || "-"}`, 12, false);
-      drawWrappedParagraph(`Profissional: ${profName || "-"}`, 12, true);
-      drawWrappedParagraph(`CRP: ${profCrp || "-"}`, 12, false);
-      drawWrappedParagraph(`Data: ${dateBR || "-"}`, 12, false);
-      drawWrappedParagraph(`Dias: ${dOff || "-"}`, 12, false);
+      drawTextLine(`Paciente: ${pName || ""}`, 12, false);
+      if (pCpf) drawTextLine(`CPF: ${pCpf}`, 12, false);
+      drawTextLine(`Profissional: ${profName || ""}${profCrp ? ` (CRP ${profCrp})` : ""}`, 12, false);
+      drawTextLine(`Data: ${dateBR || ""}`, 12, false);
+      y -= 6;
 
-      y -= 10;
-      // linha separadora
-      if (y < bottomY) newPage();
-      page.drawLine({
-        start: { x: marginX, y },
-        end: { x: pageSize[0] - marginX, y },
-        thickness: 1,
-      });
-      y -= 18;
+      // Corpo
+      drawTextLine(String(bodyText.value || "").trim(), 12, false);
 
-      // --------------------
-      // Corpo: texto livre (wrap + parágrafos)
-      // --------------------
-      const text = String(bodyText.value || "").replace(/\r/g, "");
-      const paragraphs = text.split("\n");
-
-      for (const p of paragraphs) {
-        const trimmed = p.trim();
-
-        if (!trimmed) {
-          y -= lineHeight;
-          continue;
-        }
-
-        // desenha com wrap e quebra de página
-        drawWrappedParagraph(trimmed, fontSize, false);
-      }
-
-      // --------------------
-      // Download
-      // --------------------
-      const bytes = await pdf.save();
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const pdfBytes = await pdf.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
 
-      const safeName = (pName || "paciente").trim().replace(/\s+/g, "_");
+      const safeName = (pName || "paciente")
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^\w\-]/g, "");
+
       const a = document.createElement("a");
       a.href = url;
-      a.download = `atestado_${safeName}_${docDate.value || ""}.pdf`;
+      const meta2 = getDocMeta();
+      a.download = `${meta2.key}_${safeName}_${docDate.value || ""}.pdf`;
       a.click();
 
       URL.revokeObjectURL(url);
@@ -604,26 +671,27 @@ try {
   // ============================================================================
   // EVENTOS
   // ============================================================================
-  btnModel.addEventListener("click", forceModel);
-  btnPDF.addEventListener("click", generatePdf);
+  btnModel.addEventListener("click", () => {
+    forceModel();
+    msg.textContent = "Modelo inserido.";
+  });
 
-  form.addEventListener("submit", (e) => {
+  btnPDF.addEventListener("click", async () => {
+    if (!patientId.value || !professionalSelect.value || !docDate.value) {
+      msg.textContent = "❌ Preencha paciente, profissional e data.";
+      return;
+    }
+    if (!String(bodyText.value || "").trim()) {
+      msg.textContent = "❌ Digite o texto do documento.";
+      return;
+    }
+    await generatePdf();
+  });
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    saveAttestation();
+    await saveAttestation();
   });
-
-  docDate.addEventListener("change", ensureDefaultTextIfEmpty);
-  daysOff.addEventListener("input", ensureDefaultTextIfEmpty);
-  if (startDate) startDate.addEventListener("change", ensureDefaultTextIfEmpty);
-  if (endDate) endDate.addEventListener("change", ensureDefaultTextIfEmpty);
-
-  const RT = window.CorneliusRealtime;
-if (RT) {
-  RT.on("attestations:change", () => {
-    const pid = (patientId && patientId.value) ? patientId.value : "";
-    if (pid) loadHistoryForPatient(pid);
-  });
-}
 
   // ============================================================================
   // BOOT
@@ -631,8 +699,10 @@ if (RT) {
   (async function boot() {
     try {
       docDate.value = new Date().toISOString().slice(0, 10);
+      await loadPatientsCache();
       await loadProfessionals();
       updateProfessionalCrpUI();
+      applyDocUi();
       ensureDefaultTextIfEmpty();
       msg.textContent = "Pronto.";
     } catch (e) {

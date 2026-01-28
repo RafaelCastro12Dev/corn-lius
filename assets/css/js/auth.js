@@ -273,6 +273,17 @@
   // Boot: tenta carregar role e aplicar UI
   // =========================
   document.addEventListener("DOMContentLoaded", function () {
+    // 0) Conecta o botão global "Sair" (se existir na página)
+    // Obs: manter pelo ID #btnLogout para funcionar em todas as telas sem duplicar JS.
+    const btnLogout = document.getElementById("btnLogout");
+    if (btnLogout) {
+      btnLogout.addEventListener("click", function (e) {
+        e.preventDefault();
+        // Usa o logout oficial (limpa role + redireciona)
+        logout();
+      });
+    }
+
     // 1) Aplica UI com o que já existir no cache (rápido)
     applyRoleUI();
 
