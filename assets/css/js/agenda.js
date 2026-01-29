@@ -550,6 +550,15 @@ if (attendanceStatus) attendanceStatus.value = "pending";
 
     const events = await buildCalendarEvents();
 
+    if (!window.FullCalendar) {
+  console.error("FullCalendar não carregou (CDN bloqueado/instável).");
+  if (typeof calMissing !== "undefined" && calMissing) {
+    calMissing.style.display = "block";
+  }
+  return;
+}
+
+
     calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: "timeGridWeek",
       locale: "pt-br",

@@ -1,149 +1,96 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Cornélius | Impressões</title>
-  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
-  <link rel="stylesheet" href="assets/css/styles.css"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Impressões</title>
 
-  <!-- PDF Lib -->
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- CSS do seu projeto (ajuste se necessário) -->
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/impressoes.css"/>
+  <style>
+    /* Fallback visual caso css/impressoes.css não exista */
+    .container{max-width:980px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+    .card{border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:16px;background:#fff}
+    .card h3{margin:0 0 6px 0}
+    .muted{opacity:.75}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#111;color:#fff;cursor:pointer;text-decoration:none}
+    .btn.secondary{background:#fff;color:#111}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .alert{padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.15);background:rgba(0,0,0,.03)}
+    .small{font-size:12px}
+    .adminBox{margin-top:16px;display:none}
+  </style>
 </head>
-<body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="brand-badge" aria-hidden="true">
-          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
-        </div>
-        <div class="brand-title">
-          <strong>Cornélius</strong>
-          <span>Impressões</span>
-        </div>
-      </div>
 
-      <nav class="nav">
-        <a href="index.html"data-admin-only>Início</a>
-        <a href="agenda.html"data-admin-only>Agenda</a>
-        <a href="cadastro.html"data-admin-only>Cadastro</a>
-        <a href="profissionais.html"data-admin-only>Profissionais</a>
-        <a class="active" href="impressoes.html"data-admin-only>Impressões</a>
-        <a href="#" id="btnLogout">Sair</a>
-      </nav>
+<body>
+  <!-- Topbar / menu do seu projeto -->
+  <header class="topbar">
+    <div class="container row" style="justify-content:space-between">
+      <div class="row">
+        <strong>Cornelius</strong>
+        <nav class="row" style="gap:12px;margin-left:12px">
+          <a href="agenda.html">Agenda</a>
+          <a href="impressoes.html" aria-current="page">Impressões</a>
+          <!-- demais links... -->
+        </nav>
+      </div>
+      <a id="btnLogout" class="btn secondary" href="#">Sair</a>
     </div>
-  </div>
+  </header>
 
   <main class="container">
-    <div class="page-head">
-      <h1>Impressões</h1>
-      <p class="muted">Atestado padronizado com PDF e histórico do conteúdo emitido.</p>
-    </div>
+    <h1>Impressões</h1>
+    <p class="muted">Escolha o tipo de documento e faça o download do modelo.</p>
 
-    <section class="card">
-      <div class="card-header">
-        <h2 id="docTitle">Atestado</h2>
-        <p id="docSubtitle" class="muted">Digite o texto, salve e gere o PDF para imprimir/salvar.</p>
-      </div>
+    <div id="msg" class="alert" style="display:none"></div>
 
-      <form id="attForm" class="form-grid">
-        <div class="field">
-          <label for="patientSelect">Paciente</label>
-          <div class="field" style="grid-column: 1 / -1;">
-  <label for="patientSearch">Paciente</label>
-
-  <input
-    id="patientSearch"
-    type="text"
-    placeholder="Digite nome ou CPF..."
-    autocomplete="off"
-    required
-  />
-<div id="patientCpfInfo" class="text-sm text-secondary" style="margin-top:6px; display:none;"></div>
-
-  <input id="patientId" type="hidden" />
-
-  <div id="patientSuggest" class="suggest" style="display:none;"></div>
-</div>
-
+    <section class="grid" aria-label="Tipos de documentos">
+      <article class="card">
+        <h3>Atestado</h3>
+        <p class="muted small">Modelo oficial (preencha os campos em branco manualmente, se necessário).</p>
+        <div class="row">
+          <button class="btn" data-doc="atestado">Baixar PDF</button>
         </div>
+      </article>
 
-        <div class="field">
-          <label for="professionalSelect">Profissional</label>
-          <select id="professionalSelect" required>
-            <option value="">Selecione...</option>
-          </select>
+      <article class="card">
+        <h3>Declaração</h3>
+        <p class="muted small">Modelo oficial (preencha os campos em branco manualmente, se necessário).</p>
+        <div class="row">
+          <button class="btn" data-doc="declaracao">Baixar PDF</button>
         </div>
+      </article>
 
-        <div class="field">
-          <label for="docType">Tipo do documento</label>
-          <select id="docType" required>
-            <option value="atestado">Atestado</option>
-            <option value="relatorio">Relatório</option>
-            <option value="declaracao">Declaração</option>
-          </select>
+      <article class="card">
+        <h3>Relatório</h3>
+        <p class="muted small">Modelo oficial (preencha os campos em branco manualmente, se necessário).</p>
+        <div class="row">
+          <button class="btn" data-doc="relatorio">Baixar PDF</button>
         </div>
-<div id="professionalCrpInfo" class="text-sm text-secondary" style="margin-top:6px; display:none;"></div>
-        <div class="field">
-          <label for="docDate">Data</label>
-          <input id="docDate" type="date" required/>
-        </div>
-
-        <div class="field">
-          <label for="daysOff">Dias (opcional)</label>
-          <input id="daysOff" type="number" min="0" step="1" placeholder="Ex.: 2"/>
-        </div>
-
-        <div class="field">
-          <label for="startDate">Início (opcional)</label>
-          <input id="startDate" type="date"/>
-        </div>
-
-        <div class="field">
-          <label for="endDate">Fim (opcional)</label>
-          <input id="endDate" type="date"/>
-        </div>
-
-        <div class="field" style="grid-column: 1 / -1;">
-          <label id="bodyLabel" for="bodyText">Texto do atestado (a profissional escreve aqui)</label>
-          <textarea id="bodyText" rows="10" required placeholder="Digite o texto do atestado..."></textarea>
-        </div>
-
-        <div style="grid-column: 1 / -1; display:flex; gap: 10px; flex-wrap: wrap;">
-          <button id="btnModel" type="button">Inserir modelo</button>
-          <button id="btnSave" type="submit">Salvar</button>
-          <button id="btnPDF" type="button">Gerar PDF</button>
-        </div>
-
-        <div id="msg" class="muted" style="grid-column: 1 / -1;"></div>
-      </form>
+      </article>
     </section>
 
-    <section class="card" style="margin-top: 14px;">
-      <div class="card-header">
-        <h2>Histórico</h2>
-        <p class="muted">Registros do que foi emitido.</p>
+    <!-- Área opcional: apenas admin (caso você queira evoluir depois) -->
+    <section id="adminBox" class="adminBox card" data-admin-only>
+      <h3>Admin (opcional)</h3>
+      <p class="muted small">
+        Se você quiser, pode evoluir aqui para “pré-preencher” o PDF com dados do sistema.
+        Para profissionais, a tela permanece somente com os tipos e download do modelo.
+      </p>
+      <div class="alert small">
+        Este bloco está marcado como <code>data-admin-only</code> e será ocultado para profissionais pelo seu <code>auth.js</code>.
       </div>
-      <div id="history"></div>
     </section>
   </main>
 
-  <!-- Scripts do sistema (mesma ordem das outras páginas) -->
-  <!-- Scripts (ordem correta, igual às outras páginas) -->
-<!-- Supabase core -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Auth + Supabase (ordem do seu projeto) -->
+  <script src="js/supabase-init.js"></script>
+  <script src="js/auth.js"></script>
 
-<!-- Config -->
-<script src="assets/css/js/supabase-config.js"></script>
-<script src="assets/css/js/realtime.js"></script>
-<script src="assets/css/js/supabase-api.js"></script>
-<!-- Auth -->
-<script src="assets/css/js/auth.js"></script>
-
-
-<!-- Página -->
-<script src="assets/css/js/impressoes.js"></script>
-
-
+  <!-- Impressões -->
+  <script src="js/impressoes.js"></script>
 </body>
 </html>
