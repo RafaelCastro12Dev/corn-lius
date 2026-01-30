@@ -657,7 +657,7 @@ return {
       },
 
       eventClick: async function (info) {
-        if (isReadOnly) return;
+        // Professional: pode editar SOMENTE via clique (sem criar/arrastar)
 
         const event = info.event;
         editingId = event.id;
@@ -666,6 +666,19 @@ return {
         if (modalTitle) modalTitle.textContent = "Editar Agendamento";
 
         resetMulti();
+
+        // trava profissional no próprio ID (evita troca via HTML)
+        if (isProfessional && professionalSelect) {
+          if (lockedProfessionalId) professionalSelect.value = lockedProfessionalId;
+          professionalSelect.disabled = true;
+        } else if (professionalSelect) {
+          professionalSelect.disabled = false;
+        }
+
+        // profissional só edita; não exclui
+        if (isProfessional && btnDelete) {
+          btnDelete.style.display = "none";
+        }
 
         if (patientId) patientId.value = event.extendedProps.patientId || "";
         if (patientSearch) patientSearch.value = event.extendedProps.patientName || "";
@@ -717,7 +730,9 @@ return {
   // -----------------------------
   function validateForm() {
     const patientIdValue = patientId?.value || "";
-    const professionalId = professionalSelect?.value || "";
+    const professionalId = isProfessional
+      ? (lockedProfessionalId || (professionalSelect?.value || ""))
+      : (professionalSelect?.value || "");
     const start = startAt?.value || "";
 
     if (!patientIdValue) return toast("⚠️ Selecione um paciente"), null;

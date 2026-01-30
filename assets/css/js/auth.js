@@ -14,11 +14,19 @@
     }
   }
 
-  function getAuthStorageKey() {
-    const ref = getSupabaseRef();
-    if (!ref) return null;
-    return `sb-${ref}-auth-token`;
-  }
+ function getAuthStorageKey() {
+  const ref = getSupabaseRef();
+  if (ref) return `sb-${ref}-auth-token`;
+
+  // ✅ fallback: encontra qualquer sb-*-auth-token no localStorage
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) || "";
+      if (k.startsWith("sb-") && k.endsWith("-auth-token")) return k;
+    }
+  } catch {}
+  return null;
+}
 
   function getStoredSession() {
     try {
@@ -153,12 +161,16 @@
   // =========================
   // Redirect helpers
   // =========================
-  function redirectToLogin() {
-    const next = encodeURIComponent(
-      location.pathname.split("/").pop() + location.search
-    );
-    location.href = `login.html?next=${next}`;
-  }
+ function redirectToLogin() {
+  const current = location.pathname.split("/").pop();
+  if (current === "login.html") return; // ✅ evita loop no login
+
+  const next = encodeURIComponent(
+    location.pathname.split("/").pop() + location.search
+  );
+  location.href = `login.html?next=${next}`;
+}
+
 
   function redirectToAgenda() {
     location.href = "agenda.html";

@@ -1,96 +1,412 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Impressões</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Impressões Cornélius - Baixe e gere PDFs preenchidos">
+  <title>Cornélius | Impressões</title>
+  <link rel="icon" type="image/png" href="assets/img/logo.cornelio.jpg">
+  <link rel="stylesheet" href="assets/css/styles.css"/>
 
-  <!-- CSS do seu projeto (ajuste se necessário) -->
-  <link rel="stylesheet" href="css/style.css"/>
-  <link rel="stylesheet" href="css/impressoes.css"/>
+  <!-- Pequenos ajustes apenas para a área de impressão (não quebra o tema) -->
   <style>
-    /* Fallback visual caso css/impressoes.css não exista */
-    .container{max-width:980px;margin:0 auto;padding:16px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-    .card{border:1px solid rgba(0,0,0,.12);border-radius:14px;padding:16px;background:#fff}
-    .card h3{margin:0 0 6px 0}
-    .muted{opacity:.75}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.2);background:#111;color:#fff;cursor:pointer;text-decoration:none}
-    .btn.secondary{background:#fff;color:#111}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-    .alert{padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.15);background:rgba(0,0,0,.03)}
-    .small{font-size:12px}
-    .adminBox{margin-top:16px;display:none}
+    .doc-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 980px){ .doc-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px){ .doc-grid{ grid-template-columns: 1fr; } }
+
+    .doc-card{
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fff;
+    }
+    .doc-card h3{ margin:0 0 6px 0; }
+    .doc-meta{ color:#667085; font-size: 13px; margin:0 0 12px 0; }
+    .doc-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .badge-pdf{
+      margin-left:auto;
+      font-weight:700;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius: 999px;
+      background: rgba(42,157,143,.14);
+      border: 1px solid rgba(42,157,143,.22);
+      color: #1f6f66;
+    }
+
+    /* Modal simples no padrão do tema (se o styles.css já tiver modal, isso só complementa) */
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.38);
+      padding: 18px;
+      z-index: 999;
+    }
+    .modal{
+      width: min(760px, 96vw);
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid rgba(0,0,0,.12);
+      overflow: hidden;
+    }
+    .modal header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(0,0,0,.08);
+      background: #fff;
+    }
+    .close-x{
+      border: 0;
+      background: transparent;
+      font-size: 26px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 6px;
+    }
+    .modal .body{ padding: 16px; }
+    .modal footer{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border-top: 1px solid rgba(0,0,0,.08);
+      background: #fff;
+    }
+    .muted{ color:#667085; }
+    .hidden{ display:none !important; }
+    textarea.input{ min-height: 140px; resize: vertical; }
+    #calSection{ display:none; }
+    body.cal-mode #calSection{ display:block; }
+
   </style>
 </head>
 
 <body>
-  <!-- Topbar / menu do seu projeto -->
-  <header class="topbar">
-    <div class="container row" style="justify-content:space-between">
-      <div class="row">
-        <strong>Cornelius</strong>
-        <nav class="row" style="gap:12px;margin-left:12px">
-          <a href="agenda.html">Agenda</a>
-          <a href="impressoes.html" aria-current="page">Impressões</a>
-          <!-- demais links... -->
-        </nav>
+  <!-- ========== BARRA SUPERIOR (IGUAL AGENDA) ========== -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true">
+          <img src="assets/img/logo.cornelio.jpg" alt="Cornélius" class="brand-logo">
+        </div>
+        <div class="brand-title">
+          <strong>Cornélius</strong>
+          <span>Agenda e Cadastro</span>
+        </div>
       </div>
-      <a id="btnLogout" class="btn secondary" href="#">Sair</a>
+
+      <nav class="nav" role="navigation" aria-label="Menu principal">
+        <a href="index.html" data-admin-only>Início</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="cadastro.html" data-admin-only>Cadastro</a>
+        <a href="profissionais.html" data-admin-only>Profissionais</a>
+        <a href="impressoes.html" class="active">Impressões</a>
+        <a href="#" id="btnLogout">Sair</a>
+      </nav>
     </div>
-  </header>
+  </div>
 
+  <!-- ========== CONTEÚDO ========== -->
   <main class="container">
-    <h1>Impressões</h1>
-    <p class="muted">Escolha o tipo de documento e faça o download do modelo.</p>
+    <div class="header">
+      <div>
+        <h1>Impressões</h1>
+        <p>Baixe o modelo ou gere um PDF preenchido diretamente pelo sistema.</p>
+      </div>
+      <div class="actions">
+        <!-- futuro: botão “Histórico” se quiser -->
+      </div>
+    </div>
+<!-- ===== CALIBRAÇÃO DE PDF (admin / manutenção) ===== -->
+<section id="calSection" style="max-width: 980px; margin: 20px auto; padding: 16px; background: #fff; border-radius: 8px;">
 
-    <div id="msg" class="alert" style="display:none"></div>
+  <h3 style="margin-bottom: 10px;">Calibração de PDF (clique nas linhas)</h3>
 
-    <section class="grid" aria-label="Tipos de documentos">
-      <article class="card">
-        <h3>Atestado</h3>
-        <p class="muted small">Modelo oficial (preencha os campos em branco manualmente, se necessário).</p>
-        <div class="row">
-          <button class="btn" data-doc="atestado">Baixar PDF</button>
+  <canvas
+    id="calCanvas"
+    style="
+      width: 100%;
+      max-width: 900px;
+      display: block;
+      margin: 10px auto;
+      border: 1px solid #ccc;
+      background: #fff;
+      pointer-events: auto;
+    ">
+  </canvas>
+
+  <pre
+    id="calOut"
+    style="
+      width: 100%;
+      max-width: 900px;
+      margin: 10px auto;
+      padding: 12px;
+      background: #111;
+      color: #0f0;
+      font-size: 14px;
+      min-height: 140px;
+      white-space: pre-wrap;
+      display: block;
+      overflow: auto;
+    ">
+Aguardando clique no PDF...
+  </pre>
+
+</section>
+<!-- ===== FIM CALIBRAÇÃO ===== -->
+
+    <section class="card">
+      <div class="empty" style="margin:0 0 14px 0; text-align:left;">
+        💡 <strong>Dica:</strong> Use <em>Preencher</em> para gerar o PDF automaticamente (sem editar manualmente).
+      </div>
+
+      <div id="msg" class="empty" style="display:none; margin-top:0;"></div>
+
+      <div class="doc-grid">
+        <!-- ATESTADO -->
+        <div class="doc-card">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h3>Atestado</h3>
+            <span class="badge-pdf">PDF</span>
+          </div>
+          <p class="doc-meta">Modelo oficial de atestado com preenchimento automático.</p>
+
+          <div class="doc-actions">
+            <button class="btn" data-doc="atestado" data-action="download" type="button">Baixar PDF</button>
+            <button class="btn primary" data-doc="atestado" data-action="fill" type="button">Preencher / Editar</button>
+          </div>
         </div>
-      </article>
 
-      <article class="card">
-        <h3>Declaração</h3>
-        <p class="muted small">Modelo oficial (preencha os campos em branco manualmente, se necessário).</p>
-        <div class="row">
-          <button class="btn" data-doc="declaracao">Baixar PDF</button>
+        <!-- DECLARAÇÃO -->
+        <div class="doc-card">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h3>Declaração</h3>
+            <span class="badge-pdf">PDF</span>
+          </div>
+          <p class="doc-meta">Declaração de comparecimento e horários.</p>
+
+          <div class="doc-actions">
+            <button class="btn" data-doc="declaracao" data-action="download" type="button">Baixar PDF</button>
+            <button class="btn primary" data-doc="declaracao" data-action="fill" type="button">Preencher / Editar</button>
+          </div>
         </div>
-      </article>
 
-      <article class="card">
-        <h3>Relatório</h3>
-        <p class="muted small">Modelo oficial (preencha os campos em branco manualmente, se necessário).</p>
-        <div class="row">
-          <button class="btn" data-doc="relatorio">Baixar PDF</button>
+        <!-- RELATÓRIO -->
+        <div class="doc-card">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h3>Relatório</h3>
+            <span class="badge-pdf">PDF</span>
+          </div>
+          <p class="doc-meta">Relatório clínico (texto livre) com geração em PDF.</p>
+
+          <div class="doc-actions">
+            <button class="btn" data-doc="relatorio" data-action="download" type="button">Baixar PDF</button>
+            <button class="btn primary" data-doc="relatorio" data-action="fill" type="button">Preencher / Editar</button>
+          </div>
         </div>
-      </article>
-    </section>
-
-    <!-- Área opcional: apenas admin (caso você queira evoluir depois) -->
-    <section id="adminBox" class="adminBox card" data-admin-only>
-      <h3>Admin (opcional)</h3>
-      <p class="muted small">
-        Se você quiser, pode evoluir aqui para “pré-preencher” o PDF com dados do sistema.
-        Para profissionais, a tela permanece somente com os tipos e download do modelo.
-      </p>
-      <div class="alert small">
-        Este bloco está marcado como <code>data-admin-only</code> e será ocultado para profissionais pelo seu <code>auth.js</code>.
       </div>
     </section>
   </main>
 
-  <!-- Auth + Supabase (ordem do seu projeto) -->
-  <script src="js/supabase-init.js"></script>
-  <script src="js/auth.js"></script>
+  <!-- ========== MODAL: PREENCHER DOCUMENTO ========== -->
+  <div class="modal-backdrop" id="docBackdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <header>
+        <h3 id="docTitle">Preencher documento</h3>
+        <button class="close-x" id="docClose" type="button" aria-label="Fechar">×</button>
+      </header>
 
-  <!-- Impressões -->
-  <script src="js/impressoes.js"></script>
+      <form id="docForm" autocomplete="on">
+        <div class="body">
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="field">
+              <label for="docPaciente">Paciente</label>
+              <input id="docPaciente" class="input" type="text" placeholder="Nome do paciente"/>
+            </div>
+            <div class="field">
+              <label for="docRG">RG</label>
+              <input id="docRG" class="input" type="text" placeholder="RG"/>
+            </div>
+          </div>
+
+          <!-- ATESTADO -->
+          <div id="boxAtestado" class="hidden">
+            <div class="field">
+              <label for="docSintomas">Sintomas / Diagnóstico</label>
+              <input id="docSintomas" class="input" type="text" placeholder="Ex.: quadro clínico..."/>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="field">
+                <label for="docCID">CID (opcional)</label>
+                <input id="docCID" class="input" type="text" placeholder="Ex.: F41.1"/>
+              </div>
+              <div class="field">
+                <label for="docCidadeData">Cidade e data</label>
+                <input id="docCidadeData" class="input" type="text" placeholder="Ex.: São Paulo, 29/01/2026"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- DECLARAÇÃO -->
+          <div id="boxDeclaracao" class="hidden">
+            <div class="field">
+              <label for="docFinalidade">Finalidade</label>
+              <input id="docFinalidade" class="input" type="text" placeholder="Ex.: compareceu para atendimento"/>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="field">
+                <label for="docCPF">CPF (opcional)</label>
+                <input id="docCPF" class="input" type="text" placeholder="CPF"/>
+              </div>
+              <div class="field">
+                <label for="docData">Data</label>
+                <input id="docData" class="input" type="text" placeholder="dd/mm/aaaa"/>
+              </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="field">
+                <label for="docHoraIni">Hora início</label>
+                <input id="docHoraIni" class="input" type="text" placeholder="hh:mm"/>
+              </div>
+              <div class="field">
+                <label for="docHoraFim">Hora fim (opcional)</label>
+                <input id="docHoraFim" class="input" type="text" placeholder="hh:mm"/>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="docCidadeData2">Cidade e data</label>
+              <input id="docCidadeData2" class="input" type="text" placeholder="Ex.: São Paulo, 29/01/2026"/>
+            </div>
+          </div>
+
+          <!-- RELATÓRIO -->
+         <div id="boxRelatorio" class="hidden">
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+    <div class="field">
+      <label for="docNasc">Data de nascimento</label>
+      <input id="docNasc" class="input" type="text" placeholder="dd/mm/aaaa"/>
+    </div>
+    <div class="field">
+      <label for="docPsicologo">Psicólogo(a)</label>
+      <input id="docPsicologo" class="input" type="text" placeholder="Nome do profissional"/>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="docDemanda">Demanda/motivo do relatório</label>
+    <textarea id="docDemanda" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docProcedimentos">Procedimentos utilizados</label>
+    <textarea id="docProcedimentos" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docHistorico">Histórico relevante</label>
+    <textarea id="docHistorico" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docObservacao">Observação clínica</label>
+    <textarea id="docObservacao" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docAnalise">Análise psicológica</label>
+    <textarea id="docAnalise" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docConclusao">Conclusão</label>
+    <textarea id="docConclusao" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docEncaminhamento">Encaminhamento (se houver)</label>
+    <textarea id="docEncaminhamento" class="input" placeholder="..."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="docCidadeData3">Cidade e data</label>
+    <input id="docCidadeData3" class="input" type="text" placeholder="Ex.: São Paulo, 29/01/2026"/>
+  </div>
+
+</div>
+
+
+          <div class="empty" style="margin-top:14px; text-align:left;">
+            ⚠️ O PDF será gerado “por cima” do modelo. Se algum campo ficar fora do lugar, ajustamos as coordenadas uma vez e resolve.
+          </div>
+
+          <input type="hidden" id="docKey" value="">
+
+        </div>
+
+        <footer>
+          <div class="actions" style="justify-content:flex-start;">
+            <button class="btn" id="docCancel" type="button">Cancelar</button>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="docGenerate" type="submit">Gerar PDF</button>
+          </div>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+<script>
+  (function(){
+    try{
+      var p = new URLSearchParams(location.search);
+      if(p.get('cal') === '1') document.body.classList.add('cal-mode');
+    }catch(e){}
+  })();
+</script>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/css/js/supabase-config.js"></script>
+<script src="assets/css/js/realtime.js"></script>
+<script src="assets/css/js/supabase-api.js"></script>
+
+
+<!-- Auth -->
+<script src="assets/css/js/auth.js"></script>
+
+<!-- PDFLib (local) -->
+<script src="assets/vendor/pdf-lib/pdf-lib.min.js"></script>
+
+<script>
+  (function(){
+    try{
+      var p = new URLSearchParams(location.search);
+      if(p.get('cal') !== '1') return;
+      var s = document.createElement('script');
+      s.src = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
+      document.head.appendChild(s);
+    }catch(e){}
+  })();
+</script>
+
+<!-- Lógica da tela -->
+<script src="assets/css/js/impressoes.js"></script>
+
 </body>
 </html>
