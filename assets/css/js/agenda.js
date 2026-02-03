@@ -560,7 +560,7 @@ if (attendanceStatus) attendanceStatus.value = "pending";
 
 
     calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: "timeGridWeek",
+      initialView: "dayGridMonth",
       locale: "pt-br",
 
       headerToolbar: {

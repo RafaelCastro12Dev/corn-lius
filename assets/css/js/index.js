@@ -50,6 +50,11 @@
   // =============================================================================
   let showInactiveOnly = localStorage.getItem("cornelius_show_inactive_only") === "1";
 
+  if (localStorage.getItem("cornelius_show_inactive_only") == null) {
+  localStorage.setItem("cornelius_show_inactive_only", "0");
+}
+
+
   function syncInactiveButtonUI() {
     if (!btnToggleInactive) return;
     btnToggleInactive.classList.toggle("primary", showInactiveOnly);
@@ -68,6 +73,7 @@
       localStorage.setItem("cornelius_show_inactive_only", showInactiveOnly ? "1" : "0");
       syncInactiveButtonUI();
 
+      loadAllPatients(true);
       // Re-roda busca se houver texto
       const v = (q?.value || "").trim();
       if (v) search();
