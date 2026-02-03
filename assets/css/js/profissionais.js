@@ -262,112 +262,12 @@
   }
 
   // ============================================================================
-  // TROCAR SENHA DO SISTEMA (Supabase Auth)
-  // ============================================================================
-  const btnChangePass = document.getElementById("btnChangePass");
-  const oldPass = document.getElementById("oldPass");
-  const newPass = document.getElementById("newPass");
-  const newPass2 = document.getElementById("newPass2");
-  const passMsg = document.getElementById("passMsg");
-  const changePassForm = document.getElementById("changePassForm");
-
-  function showPassMsg(text, ok = false) {
-    if (!passMsg) return;
-    passMsg.textContent = text || "";
-    passMsg.style.display = "block";
-    passMsg.style.color = ok ? "var(--success)" : "var(--danger)";
-  }
-
-  async function doChangePass() {
-    if (!btnChangePass || !oldPass || !newPass || !newPass2) return;
-
-    const o = String(oldPass.value || "").trim();
-    const n1 = String(newPass.value || "").trim();
-    const n2 = String(newPass2.value || "").trim();
-
-    if (!o || !n1 || !n2) {
-      showPassMsg("Preencha todos os campos.");
-      return;
-    }
-
-    if (n1.length < 6) {
-      showPassMsg("A nova senha deve ter ao menos 6 caracteres.");
-      return;
-    }
-
-    if (n1 !== n2) {
-      showPassMsg("As novas senhas não coincidem.");
-      return;
-    }
-
-    const sb = window.supabaseClient;
-    if (!sb) {
-      showPassMsg("Supabase não carregou (supabaseClient).");
-      return;
-    }
-
-    btnChangePass.disabled = true;
-
-    try {
-      // 1) Descobre o email do usuário logado (conta única)
-      const { data: userData, error: userErr } = await sb.auth.getUser();
-      if (userErr) throw userErr;
-
-      const email = userData?.user?.email;
-      if (!email) {
-        showPassMsg("Sessão inválida. Faça login novamente.");
-        return;
-      }
-
-      // 2) Reautentica com a senha atual para validar
-      const { error: reauthErr } = await sb.auth.signInWithPassword({
-        email,
-        password: o,
-      });
-      if (reauthErr) {
-        showPassMsg("Senha atual incorreta.");
-        return;
-      }
-
-      // 3) Troca a senha do Supabase Auth (senha REAL do sistema)
-      const { error: updErr } = await sb.auth.updateUser({ password: n1 });
-      if (updErr) throw updErr;
-
-      // 4) Força logout para a clínica entrar com a nova senha imediatamente
-      showPassMsg("Senha alterada com sucesso. Faça login novamente com a nova senha.", true);
-
-      oldPass.value = "";
-      newPass.value = "";
-      newPass2.value = "";
-
-      await sb.auth.signOut();
-      location.href = "login.html";
-    } catch (e) {
-      console.error("❌ Erro ao alterar senha (Auth):", e);
-      const msg =
-        e && (e.message || e.details || e.hint)
-          ? e.message || e.details || e.hint
-          : String(e);
-      showPassMsg("Erro ao alterar senha: " + msg);
-    } finally {
-      btnChangePass.disabled = false;
-    }
-  }
-
-  // ============================================================================
   // ENTER (SUBMIT) - CONEXÕES DOS FORMS
   // ============================================================================
   if (professionalForm) {
     professionalForm.addEventListener("submit", (e) => {
       e.preventDefault();
       save();
-    });
-  }
-
-  if (changePassForm) {
-    changePassForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      doChangePass();
     });
   }
 
@@ -379,8 +279,6 @@
   if (btnCancel) btnCancel.addEventListener("click", closeModal);
   if (btnSave) btnSave.addEventListener("click", save);
   if (btnDelete) btnDelete.addEventListener("click", deleteProfessional);
-
-  if (btnChangePass) btnChangePass.addEventListener("click", doChangePass);
 
   if (modalBackdrop) {
     modalBackdrop.addEventListener("click", (e) => {

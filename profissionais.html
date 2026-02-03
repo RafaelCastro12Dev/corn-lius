@@ -11,6 +11,7 @@
 
 <!-- Força tela cheia no iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Biocare">
 
@@ -63,42 +64,7 @@
         Nenhum profissional cadastrado.
       </div>
     </section>
-
-    <!-- Senha do sistema -->
-    <section class="card" style="margin-top:24px;">
-      <div class="card-title">
-        <h2>Senha do sistema</h2>
-        <small>Altera a senha de acesso da clínica</small>
-      </div>
-
-      <!-- Form para Enter funcionar -->
-      <form id="changePassForm" autocomplete="on">
-        <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:12px;">
-          <div>
-            <label class="label" for="oldPass">Senha atual</label>
-            <input class="input" id="oldPass" type="password" placeholder="Senha atual" autocomplete="current-password">
-          </div>
-
-          <div>
-            <label class="label" for="newPass">Nova senha</label>
-            <input class="input" id="newPass" type="password" placeholder="Nova senha" autocomplete="new-password">
-          </div>
-
-          <div>
-            <label class="label" for="newPass2">Confirmar</label>
-            <input class="input" id="newPass2" type="password" placeholder="Confirmar nova senha" autocomplete="new-password">
-          </div>
-        </div>
-
-        <div class="actions" style="margin-top:14px;">
-          <button class="btn primary" id="btnChangePass" type="submit">Alterar senha</button>
-        </div>
-      </form>
-
-      <div id="passMsg" class="empty" style="display:none;"></div>
-    </section>
-
-    <!-- Modal Profissional -->
+<!-- Modal Profissional -->
     <div class="modal-backdrop" id="modalBackdrop">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <header>

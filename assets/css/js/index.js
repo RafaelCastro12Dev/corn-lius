@@ -30,6 +30,10 @@
   // ✅ NOVO: botão "Inativos" (adicione no index.html)
   const btnToggleInactive = document.getElementById("btnToggleInactive");
 
+  // ✅ NOVO: Lista alfabética de todos os pacientes (adicione no index.html)
+  const patientsAll = document.getElementById("patientsAll");
+  const btnMorePatients = document.getElementById("btnMorePatients");
+
   function goAgenda() {
     window.location.href = "agenda.html";
   }
@@ -49,6 +53,7 @@
   function syncInactiveButtonUI() {
     if (!btnToggleInactive) return;
     btnToggleInactive.classList.toggle("primary", showInactiveOnly);
+    btnToggleInactive.classList.toggle("is-on", showInactiveOnly);
     btnToggleInactive.textContent = showInactiveOnly ? "Inativos: ON" : "Inativos";
     btnToggleInactive.title = showInactiveOnly
       ? "Mostrando somente pacientes inativos"
@@ -76,6 +81,10 @@
       }
     });
   }
+
+
+      // ✅ Recarrega a lista alfabética
+      loadAllPatients(true);
 
   // =============================================================================
   // BUSCAR PACIENTES
@@ -128,7 +137,7 @@
                 </div>
                 ${cpfInfo}
               </div>
-              <span class="text-secondary">→</span>
+              <span class="chevron">›</span>
             </a>
           `;
         })
@@ -229,6 +238,99 @@
   // ao voltar pelo botão "Voltar" do navegador (bfcache)
   window.addEventListener("pageshow", runSearchIfNeeded);
 
+
+  // =============================================================================
+  // LISTA ALFABÉTICA (TODOS OS PACIENTES) - NÃO INTERFERE NA BUSCA
+  // =============================================================================
+  // Sem TDZ: usar var aqui evita erro "before initialization" caso algum handler dispare cedo.
+  var allPatientsOffset = 0;
+  // Mostrar poucos por padrão (UX) e permitir expandir
+  var ALL_PATIENTS_PAGE_SIZE = 5;
+  var ALL_PATIENTS_EXPANDED = false;
+  var ALL_PATIENTS_EXPANDED_PAGE_SIZE = 80;
+
+  async function loadAllPatients(reset = false) {
+    if (!patientsAll) return;
+
+    if (reset) {
+      allPatientsOffset = 0;
+      patientsAll.innerHTML = "";
+      if (btnMorePatients) {
+        btnMorePatients.textContent = ALL_PATIENTS_EXPANDED ? "Carregar mais" : "Ver todos";
+      }
+    }
+
+    try {
+      // Precisa existir no supabase-api.js:
+      // C.listPatientsAlphabetical({ includeInactive?: boolean, limit?: number, offset?: number })
+      if (typeof C.listPatientsAlphabetical !== "function") {
+        patientsAll.innerHTML =
+          '<div class="text-sm text-secondary">⚠️ Lista alfabética não configurada. ' +
+          'Implemente <code>C.listPatientsAlphabetical()</code> no <code>supabase-api.js</code>.</div>';
+        if (btnMorePatients) btnMorePatients.style.display = "none";
+        return;
+      }
+
+      // Se estiver ON, pedimos includeInactive:true e filtramos só os inativos (mesma regra da busca)
+      const listRaw = showInactiveOnly
+        ? await C.listPatientsAlphabetical({ includeInactive: true, limit: (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE), offset: allPatientsOffset })
+        : await C.listPatientsAlphabetical({ limit: (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE), offset: allPatientsOffset });
+
+      const list = showInactiveOnly
+        ? (listRaw || []).filter((p) => p && p.is_active === false)
+        : (listRaw || []);
+
+      // Blindagem: mesmo que a API ignore limit/range, nunca renderize além do pageSize pedido
+      const pageSize = (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE);
+      const safeList = (list || []).slice(0, pageSize);
+
+      // Render incremental
+      const html = (safeList || []).map((p) => {
+        const colorDot = `<span class="color-dot" style="background:${C.escapeHtml(p.color)}"></span>`;
+        const cpfFormatted = p.cpf ? C.formatCPF(p.cpf) : "";
+        const cpfInfo = cpfFormatted ? `<div class="text-sm text-secondary">CPF: ${cpfFormatted}</div>` : "";
+
+        return `
+          <a href="paciente.html?id=${encodeURIComponent(p.id)}" class="list-item">
+            <div class="list-item-content">
+              <div class="list-item-title">
+                ${colorDot}
+                ${C.escapeHtml(p.name)}
+              </div>
+              ${cpfInfo}
+            </div>
+            <span class="chevron">›</span>
+          </a>
+        `;
+      }).join("");
+
+      patientsAll.insertAdjacentHTML("beforeend", html);
+
+      // Paginação simples
+      if (btnMorePatients) {
+        const gotFull = (safeList || []).length === (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE);
+        btnMorePatients.style.display = gotFull ? "inline-flex" : "none";
+      }
+
+      allPatientsOffset += (safeList || []).length;
+    } catch (err) {
+      console.error("❌ Erro ao carregar lista alfabética:", err);
+      if (typeof C.toast === "function") C.toast("❌ Erro ao carregar lista de pacientes");
+    }
+  }
+
+  if (btnMorePatients) {
+    btnMorePatients.addEventListener("click", () => {
+    if (!ALL_PATIENTS_EXPANDED) {
+      ALL_PATIENTS_EXPANDED = true;
+      btnMorePatients.textContent = "Carregar mais";
+      loadAllPatients(true);
+      return;
+    }
+    loadAllPatients(false);
+  });
+  }
+
   // =============================================================================
   // EVENT LISTENERS
   // =============================================================================
@@ -255,10 +357,11 @@
   const RT = window.CorneliusRealtime;
   if (RT) {
     RT.on("appointments:change", () => loadUpcoming());
-    RT.on("patients:change", () => runSearchIfNeeded());
+    RT.on("patients:change", () => { runSearchIfNeeded(); loadAllPatients(true); });
     RT.on("realtime:reconnected", () => {
       loadUpcoming();
       runSearchIfNeeded();
+      loadAllPatients(true);
     });
   }
 
@@ -266,4 +369,117 @@
   // INICIALIZAÇÃO
   // =============================================================================
   loadUpcoming();
+  loadAllPatients(true);
+
+
+// =============================================================================
+// CARROSSEL (HOME) - "Todos os pacientes"
+// =============================================================================
+const patientsCarousel = document.getElementById("patientsCarousel");
+const btnPrevCarousel = document.querySelector(".carousel-btn.prev");
+const btnNextCarousel = document.querySelector(".carousel-btn.next");
+const carouselDots = document.getElementById("carouselDots");
+
+function ensureDots() {
+  if (!carouselDots || !patientsAll || !patientsCarousel) return;
+  // Recria dots conforme quantidade de cards
+  const cards = patientsAll.querySelectorAll(".list-item");
+  carouselDots.innerHTML = "";
+  const maxDots = Math.min(cards.length, 30); // evita poluição em bases grandes
+  for (let i = 0; i < maxDots; i++) {
+    const d = document.createElement("span");
+    d.className = "carousel-dot" + (i === 0 ? " is-active" : "");
+    carouselDots.appendChild(d);
+  }
+}
+
+function updateCarouselState() {
+  if (!patientsCarousel || !patientsAll) return;
+
+  const maxScroll = patientsCarousel.scrollWidth - patientsCarousel.clientWidth;
+  const x = patientsCarousel.scrollLeft;
+
+  if (btnPrevCarousel) btnPrevCarousel.disabled = x <= 2;
+  if (btnNextCarousel) btnNextCarousel.disabled = x >= (maxScroll - 2);
+
+  // Atualiza dot ativo com base no card mais próximo
+  if (carouselDots) {
+    const dots = Array.from(carouselDots.querySelectorAll(".carousel-dot"));
+    if (dots.length) {
+      const cards = Array.from(patientsAll.querySelectorAll(".list-item"));
+      let active = 0;
+      const left = patientsCarousel.scrollLeft;
+      for (let i = 0; i < cards.length; i++) {
+        if (cards[i].offsetLeft >= left - 6) { active = i; break; }
+      }
+      active = Math.min(active, dots.length - 1);
+      dots.forEach((d, i) => d.classList.toggle("is-active", i === active));
+    }
+  }
+}
+
+function scrollByOneCard(dir) {
+  if (!patientsCarousel || !patientsAll) return;
+  const cards = Array.from(patientsAll.querySelectorAll(".list-item"));
+  if (!cards.length) return;
+
+  const left = patientsCarousel.scrollLeft;
+  let idx = 0;
+  for (let i = 0; i < cards.length; i++) {
+    if (cards[i].offsetLeft >= left - 6) { idx = i; break; }
+  }
+  idx = Math.max(0, Math.min(cards.length - 1, idx + dir));
+  patientsCarousel.scrollTo({ left: cards[idx].offsetLeft, behavior: "smooth" });
+}
+
+if (btnPrevCarousel) btnPrevCarousel.addEventListener("click", () => scrollByOneCard(-1));
+if (btnNextCarousel) btnNextCarousel.addEventListener("click", () => scrollByOneCard(+1));
+
+if (patientsCarousel) {
+  // Drag-to-scroll desktop
+  let isDown = false, startX = 0, startLeft = 0;
+
+  patientsCarousel.addEventListener("mousedown", (e) => {
+    isDown = true;
+    patientsCarousel.classList.add("is-dragging");
+    startX = e.pageX;
+    startLeft = patientsCarousel.scrollLeft;
+  });
+
+  window.addEventListener("mouseup", () => {
+    isDown = false;
+    patientsCarousel.classList.remove("is-dragging");
+  });
+
+  patientsCarousel.addEventListener("mouseleave", () => {
+    isDown = false;
+    patientsCarousel.classList.remove("is-dragging");
+  });
+
+  patientsCarousel.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const dx = (e.pageX - startX) * 1.15;
+    patientsCarousel.scrollLeft = startLeft - dx;
+  });
+
+  patientsCarousel.addEventListener("scroll", () => {
+    // throttle simples
+    window.requestAnimationFrame(updateCarouselState);
+  });
+}
+
+// Observa mudanças na lista (quando carrega mais / toggla inativos) para refazer dots e estado
+if (patientsAll && typeof MutationObserver !== "undefined") {
+  const obs = new MutationObserver(() => {
+    ensureDots();
+    updateCarouselState();
+  });
+  obs.observe(patientsAll, { childList: true, subtree: false });
+}
+
+// Inicial
+ensureDots();
+updateCarouselState();
+
 })();

@@ -222,6 +222,28 @@
       return null;
     }
   }
+  async function listPatientsAlphabetical(options = {}) {
+  const { includeInactive = false, limit = 80, offset = 0 } = options || {};
+
+  try {
+    let q = sb
+      .from("patients")
+      .select("id,name,cpf,color,is_active")
+      .order("name", { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    if (!includeInactive) q = q.eq("is_active", true);
+
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("❌ Erro ao listar pacientes (alfabético):", err);
+    toast("Erro ao carregar lista de pacientes");
+    return [];
+  }
+}
+
 
   async function addPatient(patient) {
     try {
@@ -1023,6 +1045,7 @@ async function getAttestationsByPatient(patientId) {
     addPatient,
     updatePatient,
     searchPatients,
+    listPatientsAlphabetical,
     archivePatient,
     restorePatient,
     canDeletePatient,
