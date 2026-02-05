@@ -509,7 +509,11 @@ if (attendanceStatus) attendanceStatus.value = "pending";
         const p = patientMap[a.patient_id];
         const pro = professionalMap[a.professional_id];
 
-        const title = `${p ? p.name : "Paciente"}${pro ? " — " + pro.name : ""}`;
+        // ✅ Não renderiza eventos inválidos/orfãos (evita "Paciente" fantasma e bloqueio de clique no mês)
+        const patientName = (p && p.name ? String(p.name).trim() : "");
+        if (!patientName) return;
+
+        const title = `${patientName}${pro ? " — " + pro.name : ""}`;
         const eventColor = a.color || (p ? p.color : null) || "#2A9D8F";
 
         events.push({
@@ -522,7 +526,7 @@ if (attendanceStatus) attendanceStatus.value = "pending";
             professionalId: a.professional_id,
             notes: a.notes,
             room: a.room,
-            patientName: p ? p.name : "Paciente",
+            patientName: patientName,
             professionalName: pro ? pro.name : "",
             attendance_status: a.attendance_status,
 
@@ -600,7 +604,13 @@ if (attendanceStatus) attendanceStatus.value = "pending";
 
       eventContent: function (arg) {
         const props = arg.event.extendedProps || {};
-        const patientName = props.patientName || "Paciente";
+        const patientName = (props.patientName ? String(props.patientName).trim() : "");
+        // ✅ Se não houver patientName (evento quebrado/origem externa), não inventa "Paciente"
+        if (!patientName) {
+          const t = (arg.event.title || "").trim();
+          if (!t) return { html: "" };
+          return { html: `<div class="ce-title">${C.escapeHtml(t)}</div>` };
+        }
         const professionalName = props.professionalName || "";
         const room = props.room || "";
 
@@ -718,6 +728,10 @@ return {
     });
 
     calendar.render();
+
+    // debug / console access
+    window._calendar = calendar;
+    window.calendar = calendar;
 
     const view = calendar.view;
     if (view && view.activeStart && view.activeEnd) {
