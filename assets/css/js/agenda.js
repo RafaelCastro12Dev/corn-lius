@@ -822,7 +822,6 @@ return {
   // não bloqueia
 }
 
-
         payloads.push({ ...base, start_time: sDate.toISOString() });
       }
 
