@@ -983,7 +983,6 @@
   safeOn(btnAddPayment, "click", openNewPayment);
   safeOn(btnClosePay, "click", closePayment);
   safeOn(btnCancelPay, "click", closePayment);
-  safeOn(btnSavePay, "click", savePayment);
   safeOn(btnDeletePay, "click", deletePayment);
 
   safeOn(payMethod, "change", updateCardDerivedUI);
