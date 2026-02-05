@@ -757,7 +757,11 @@ return {
     if (isNaN(startDate.getTime())) return toast("⚠️ Data/hora inválida"), null;
 
     const dateYmd = ymdLocal(startDate);
-    if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Não é possível agendar em feriado nacional"), null;
+    if (blockedHolidays.includes(dateYmd)) {
+  console.warn("⚠️ Agendando em feriado:", dateYmd);
+  // não bloqueia
+}
+
 
     return {
       patient_id: patientIdValue,
@@ -813,7 +817,11 @@ return {
         if (isNaN(sDate.getTime())) return toast("⚠️ Datas inválidas no agendamento múltiplo.");
 
         const dateYmd = ymdLocal(sDate);
-        if (blockedHolidays.includes(dateYmd)) return toast("⚠️ Um dos agendamentos cai em feriado nacional.");
+       if (blockedHolidays.includes(dateYmd)) {
+  console.warn("⚠️ Agendamento múltiplo em feriado:", dateYmd);
+  // não bloqueia
+}
+
 
         payloads.push({ ...base, start_time: sDate.toISOString() });
       }
