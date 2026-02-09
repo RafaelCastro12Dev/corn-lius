@@ -583,7 +583,18 @@ if (attendanceStatus) attendanceStatus.value = "pending";
       expandRows: true,
       stickyHeaderDates: true,
       nowIndicator: false,
-      dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" },
+      views: {
+  dayGridMonth: {
+    dayHeaderFormat: { weekday: "short" }
+  },
+  timeGridWeek: {
+    dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" }
+  },
+  timeGridDay: {
+    dayHeaderFormat: { weekday: "long", day: "2-digit", month: "2-digit" }
+  }
+}
+,
 
       selectable: !isReadOnly,
       editable: false,
