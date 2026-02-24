@@ -92,7 +92,228 @@
       // ✅ Recarrega a lista alfabética
       loadAllPatients(true);
 
+  
   // =============================================================================
+  // DASHBOARD FINANCEIRO (HOME) - abaixo da busca por CPF
+  // =============================================================================
+
+  function buildFinanceDashboardUI() {
+    if (!q) return;
+
+    // Evita duplicar caso rode duas vezes
+    if (document.getElementById("financeDashboard")) return;
+
+    const wrap = document.createElement("div");
+    wrap.id = "financeDashboard";
+    wrap.className = "card soft";
+    wrap.style.marginTop = "14px";
+
+    // Mês atual default
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const monthDefault = `${yyyy}-${mm}`;
+
+    wrap.innerHTML = `
+      <div class="card-title">
+        <h2>💰 Financeiro Geral</h2>
+        <small>Caixa • Recebido • Pendências</small>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div class="field">
+          <label>Mês (atalho)</label>
+          <input id="finMonth" type="month" value="${monthDefault}">
+        </div>
+
+        <div class="field">
+          <label>Profissional</label>
+          <select id="finProfessional">
+            <option value="ALL">Todos</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="finStatus">
+            <option value="ALL">Todos</option>
+            <option value="PAID">Pago</option>
+            <option value="PENDING">Pendente</option>
+            <option value="PARTIAL">Parcial</option>
+            <option value="FREE">Isento</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Método</label>
+          <select id="finMethod">
+            <option value="ALL">Todos</option>
+            <option value="PIX">Pix</option>
+            <option value="CARD">Cartão</option>
+            <option value="CASH">Dinheiro</option>
+            <option value="TRANSFER">Transferência</option>
+            <option value="OTHER">Outro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions" style="justify-content:flex-start; margin-top: 8px;">
+        <button class="btn primary" id="finApply">Aplicar</button>
+        <button class="btn" id="finThisMonth">Este mês</button>
+        <button class="btn" id="finClearFilters">Limpar filtros</button>
+        <span class="text-sm text-secondary" id="finHint" style="margin-left: 6px;"></span>
+      </div>
+
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px;">
+        <div class="card" style="padding:14px; border-radius:16px;">
+          <div class="text-sm text-secondary">Recebido (bruto)</div>
+          <div style="font-size:22px; font-weight:900;" id="kpiPaidGross">—</div>
+        </div>
+        <div class="card" style="padding:14px; border-radius:16px;">
+          <div class="text-sm text-secondary">Caixa (líquido estim.)</div>
+          <div style="font-size:22px; font-weight:900;" id="kpiPaidNet">—</div>
+        </div>
+        <div class="card" style="padding:14px; border-radius:16px;">
+          <div class="text-sm text-secondary">Pendente</div>
+          <div style="font-size:22px; font-weight:900;" id="kpiPending">—</div>
+        </div>
+        <div class="card" style="padding:14px; border-radius:16px;">
+          <div class="text-sm text-secondary">Ticket médio (pagos)</div>
+          <div style="font-size:22px; font-weight:900;" id="kpiAvgTicket">—</div>
+        </div>
+      </div>
+    `;
+
+    // Insere abaixo de "Todos os pacientes" e acima de "Próximos atendimentos"
+    // Observação: o layout da Home usa grid 2-colunas; forçamos o card a ocupar a linha inteira.
+ // ✅ Insere o Financeiro exatamente no placeholder do HTML
+const mount = document.getElementById("financeMount");
+if (mount) {
+  mount.replaceWith(wrap);
+} else {
+  // fallback: logo após a seção de pacientes
+  const patientsSection = document.getElementById("patientsSection");
+  if (patientsSection && patientsSection.parentElement) {
+    patientsSection.parentElement.insertBefore(wrap, patientsSection.nextSibling);
+  } else if (q && q.parentElement) {
+    q.parentElement.insertAdjacentElement("afterend", wrap);
+  }
+}}
+
+  function monthRangeISO(monthYYYYMM) {
+    // monthYYYYMM: "2026-02"
+    if (!monthYYYYMM || !/^\d{4}-\d{2}$/.test(monthYYYYMM)) return { fromISO: null, toISO: null };
+
+    const [y, m] = monthYYYYMM.split("-").map(Number);
+    const from = new Date(y, m - 1, 1, 0, 0, 0);
+    const to = new Date(y, m, 0, 23, 59, 59); // último dia do mês
+
+    return { fromISO: from.toISOString(), toISO: to.toISOString() };
+  }
+
+  async function fillDashboardProfessionals() {
+    const sel = document.getElementById("finProfessional");
+    if (!sel || !window.Cornelius) return;
+
+    // tenta achar função existente (você já tem getAllProfessionals)
+    const fn = ["getAllProfessionals", "getProfessionals", "listProfessionals"].find((n) => typeof C[n] === "function");
+    if (!fn) return;
+
+    try {
+      const list = await C[fn]();
+      const current = sel.value || "ALL";
+
+      sel.innerHTML = `<option value="ALL">Todos</option>` + (list || [])
+        .map((p) => `<option value="${C.escapeHtml(p.id)}">${C.escapeHtml(p.name || "Profissional")}</option>`)
+        .join("");
+
+      sel.value = current;
+    } catch (e) {
+      console.warn("Não foi possível carregar profissionais no dashboard:", e);
+    }
+  }
+
+  async function refreshFinanceDashboard() {
+    if (typeof C.calcDashboardSummary !== "function") {
+      console.warn("calcDashboardSummary não existe. Verifique supabase-api.js.");
+      return;
+    }
+
+    const month = document.getElementById("finMonth")?.value || "";
+    const status = document.getElementById("finStatus")?.value || "ALL";
+    const method = document.getElementById("finMethod")?.value || "ALL";
+    const professionalId = document.getElementById("finProfessional")?.value || "ALL";
+
+    const { fromISO, toISO } = monthRangeISO(month);
+
+    const hint = document.getElementById("finHint");
+    if (hint) hint.textContent = month ? `Período: ${month}` : "";
+
+    const kPaidGross = document.getElementById("kpiPaidGross");
+    const kPaidNet = document.getElementById("kpiPaidNet");
+    const kPending = document.getElementById("kpiPending");
+    const kAvg = document.getElementById("kpiAvgTicket");
+
+    // placeholders
+    if (kPaidGross) kPaidGross.textContent = "…";
+    if (kPaidNet) kPaidNet.textContent = "…";
+    if (kPending) kPending.textContent = "…";
+    if (kAvg) kAvg.textContent = "…";
+
+    const summary = await C.calcDashboardSummary({
+      fromISO,
+      toISO,
+      status,
+      method,
+      professionalId,
+      limit: 5000
+    });
+
+    if (kPaidGross) kPaidGross.textContent = C.moneyBR(summary.paid_gross);
+    if (kPaidNet) kPaidNet.textContent = C.moneyBR(summary.paid_net_estimated);
+    if (kPending) kPending.textContent = C.moneyBR(summary.pending);
+    if (kAvg) kAvg.textContent = C.moneyBR(summary.avg_ticket_paid);
+  }
+
+  function bindFinanceDashboardEvents() {
+    const btnApply = document.getElementById("finApply");
+    const btnThis = document.getElementById("finThisMonth");
+    const btnClear = document.getElementById("finClearFilters");
+
+    const finMonth = document.getElementById("finMonth");
+    const finStatus = document.getElementById("finStatus");
+    const finMethod = document.getElementById("finMethod");
+    const finProfessional = document.getElementById("finProfessional");
+
+    if (btnApply) btnApply.addEventListener("click", refreshFinanceDashboard);
+
+    if (btnThis) {
+      btnThis.addEventListener("click", async () => {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        if (finMonth) finMonth.value = `${yyyy}-${mm}`;
+        await refreshFinanceDashboard();
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener("click", async () => {
+        if (finStatus) finStatus.value = "ALL";
+        if (finMethod) finMethod.value = "ALL";
+        if (finProfessional) finProfessional.value = "ALL";
+        await refreshFinanceDashboard();
+      });
+    }
+
+    // auto-refresh em mudanças
+    [finMonth, finStatus, finMethod, finProfessional].forEach((el) => {
+      if (!el) return;
+      el.addEventListener("change", () => refreshFinanceDashboard());
+    });
+  }
+
+// =============================================================================
   // BUSCAR PACIENTES
   // =============================================================================
   async function search() {
@@ -376,6 +597,12 @@
   // =============================================================================
   loadUpcoming();
   loadAllPatients(true);
+
+  // Financeiro Geral (Dashboard)
+  buildFinanceDashboardUI();
+  fillDashboardProfessionals().then(() => refreshFinanceDashboard());
+  bindFinanceDashboardEvents();
+
 
 
 // =============================================================================

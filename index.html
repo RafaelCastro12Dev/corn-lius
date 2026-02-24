@@ -128,30 +128,7 @@
           <p>Nenhum paciente encontrado.</p>
           <p><strong>Dica:</strong> Cadastre um novo paciente para começar.</p>
         </div>
-        <hr style="margin:14px 0; opacity:.15;">
-
-<div class="card-title" style="margin-top: 6px;">
-  <h2 style="font-size: 16px; margin:0;">Todos os pacientes</h2>
-  <small>Ordem alfabética</small>
-</div>
-
-<div class="patients-carousel-wrap">
-  <button class="carousel-btn prev" type="button" aria-label="Voltar" title="Voltar">‹</button>
-
-  <div class="patients-carousel" id="patientsCarousel" aria-label="Carrossel de pacientes">
-    <div id="patientsAll" class="patients-track"></div>
-  </div>
-
-  <button class="carousel-btn next" type="button" aria-label="Avançar" title="Avançar">›</button>
-</div>
-
-<div id="carouselDots" class="carousel-dots" aria-hidden="true"></div>
-
-
-<div style="margin-top:10px; display:flex; justify-content:center;">
-  <button class="btn" id="btnMorePatients" type="button" style="display:none;">Carregar mais</button>
-</div>
-
+        
       </section>
 
       <!-- Sidebar: próximos atendimentos -->
@@ -173,6 +150,35 @@
         </div>
       </aside>
     </div>
+
+    <!-- ✅ Seção full-width: Todos os pacientes -->
+    <section class="card soft" id="patientsSection" style="margin-top:20px;">
+      <div class="card-title" style="margin-top: 6px;">
+        <h2 style="font-size: 16px; margin:0;">Todos os pacientes</h2>
+        <small>Ordem alfabética</small>
+      </div>
+
+      <div class="patients-carousel-wrap">
+        <button class="carousel-btn prev" type="button" aria-label="Voltar" title="Voltar">‹</button>
+
+        <div class="patients-carousel" id="patientsCarousel" aria-label="Carrossel de pacientes">
+          <div id="patientsAll" class="patients-track"></div>
+        </div>
+
+        <button class="carousel-btn next" type="button" aria-label="Avançar" title="Avançar">›</button>
+      </div>
+
+      <div id="carouselDots" class="carousel-dots" aria-hidden="true"></div>
+
+
+      <div style="margin-top:10px; display:flex; justify-content:center;">
+        <button class="btn" id="btnMorePatients" type="button" style="display:none;">Carregar mais</button>
+      </div>
+    </section>
+
+    <!-- ✅ Placeholder do Financeiro Geral (JS vai injetar aqui) -->
+    <div id="financeMount"></div>
+
   </main>
 
   <!-- Scripts (ordem correta) -->

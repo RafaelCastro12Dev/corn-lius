@@ -1011,6 +1011,119 @@ async function getAttestationsByPatient(patientId) {
   }
 
   // ============================================================================
+// FINANCEIRO - DASHBOARD GLOBAL (Home)
+// ============================================================================
+
+async function listPayments(options = {}) {
+  const {
+    fromISO = null,
+    toISO = null,
+    status = "ALL",     // ALL | PAID | PENDING | PARTIAL | FREE
+    method = "ALL",     // ALL | PIX | CARD | CASH | TRANSFER | OTHER
+    professionalId = "ALL", // ALL | uuid
+    limit = 5000
+  } = options || {};
+
+  try {
+    let q = sb
+      .from("payments")
+      .select("id, amount, payment_date, status, method, professional_id, card_fee")
+      .order("payment_date", { ascending: false })
+      .limit(limit);
+
+    if (fromISO) q = q.gte("payment_date", fromISO);
+    if (toISO) q = q.lte("payment_date", toISO);
+
+    if (status && status !== "ALL") q = q.eq("status", status);
+    if (method && method !== "ALL") q = q.eq("method", method);
+    if (professionalId && professionalId !== "ALL") q = q.eq("professional_id", professionalId);
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    return data || [];
+  } catch (err) {
+    console.error("❌ Erro ao listar pagamentos (dashboard):", err);
+    toast("Erro ao carregar financeiro (dashboard)");
+    return [];
+  }
+}
+
+function _calcPaidPortion(payment) {
+  const amount = parseFloat(payment?.amount) || 0;
+  const st = payment?.status;
+
+  // Regra atual do seu sistema:
+  // - PAID: 100% pago
+  // - PENDING: 0% pago
+  // - PARTIAL: metade pago (como você já faz no summary do paciente)
+  // - FREE: 0 (isento não entra como receita)
+  if (st === PAYMENT_STATUS.PAID) return amount;
+  if (st === PAYMENT_STATUS.PARTIAL) return amount / 2;
+  return 0;
+}
+
+function _calcPendingPortion(payment) {
+  const amount = parseFloat(payment?.amount) || 0;
+  const st = payment?.status;
+
+  if (st === PAYMENT_STATUS.PENDING) return amount;
+  if (st === PAYMENT_STATUS.PARTIAL) return amount / 2;
+  return 0;
+}
+
+function _calcNetCardPaid(payment) {
+  // Estimativa de líquido para cartão (se houver taxa)
+  // Aplica somente na parte "paga" (PAID / parte do PARTIAL)
+  const paidPortion = _calcPaidPortion(payment);
+  if (!paidPortion) return 0;
+
+  const method = payment?.method;
+  if (method !== PAYMENT_METHOD.CARD) return paidPortion;
+
+  const fee = parseFloat(payment?.card_fee) || 0;
+  const net = paidPortion * (1 - fee / 100);
+  return net;
+}
+
+async function calcDashboardSummary(options = {}) {
+  const payments = await listPayments(options);
+
+  let grossPaid = 0;
+  let grossPending = 0;
+  let netPaid = 0;
+
+  let count = 0;
+  let countPaidLike = 0;
+
+  for (const p of payments) {
+    const a = parseFloat(p.amount) || 0;
+    if (a <= 0) continue;
+
+    count += 1;
+
+    const paidPart = _calcPaidPortion(p);
+    const pendPart = _calcPendingPortion(p);
+
+    grossPaid += paidPart;
+    grossPending += pendPart;
+
+    if (paidPart > 0) countPaidLike += 1;
+
+    netPaid += _calcNetCardPaid(p);
+  }
+
+  const avgTicketPaid = countPaidLike ? (grossPaid / countPaidLike) : 0;
+
+  return {
+    range_count: count,
+    paid_gross: grossPaid,
+    paid_net_estimated: netPaid,     // útil para “lucro/caixa” (estimativa)
+    pending: grossPending,
+    avg_ticket_paid: avgTicketPaid
+  };
+}
+  // ============================================================================
   // EXPORTAR API
   // ============================================================================
 
@@ -1088,6 +1201,9 @@ updateAttestation,
 getAttestationById,
 getAttestationsByPatient,
 
+// Dashboard financeiro (Home)
+listPayments,
+calcDashboardSummary,
 
     // Auxiliares
     resetDemo
