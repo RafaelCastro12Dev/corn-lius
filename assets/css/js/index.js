@@ -164,7 +164,7 @@
         <span class="text-sm text-secondary" id="finHint" style="margin-left: 6px;"></span>
       </div>
 
-      <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px;">
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px;">
         <div class="card" style="padding:14px; border-radius:16px;">
           <div class="text-sm text-secondary">Recebido (bruto)</div>
           <div style="font-size:22px; font-weight:900;" id="kpiPaidGross">—</div>
@@ -177,10 +177,7 @@
           <div class="text-sm text-secondary">Pendente</div>
           <div style="font-size:22px; font-weight:900;" id="kpiPending">—</div>
         </div>
-        <div class="card" style="padding:14px; border-radius:16px;">
-          <div class="text-sm text-secondary">Ticket médio (pagos)</div>
-          <div style="font-size:22px; font-weight:900;" id="kpiAvgTicket">—</div>
-        </div>
+      
       </div>
     `;
 
@@ -252,13 +249,13 @@ if (mount) {
     const kPaidGross = document.getElementById("kpiPaidGross");
     const kPaidNet = document.getElementById("kpiPaidNet");
     const kPending = document.getElementById("kpiPending");
-    const kAvg = document.getElementById("kpiAvgTicket");
+    
 
     // placeholders
     if (kPaidGross) kPaidGross.textContent = "…";
     if (kPaidNet) kPaidNet.textContent = "…";
     if (kPending) kPending.textContent = "…";
-    if (kAvg) kAvg.textContent = "…";
+   
 
     const summary = await C.calcDashboardSummary({
       fromISO,
@@ -272,7 +269,7 @@ if (mount) {
     if (kPaidGross) kPaidGross.textContent = C.moneyBR(summary.paid_gross);
     if (kPaidNet) kPaidNet.textContent = C.moneyBR(summary.paid_net_estimated);
     if (kPending) kPending.textContent = C.moneyBR(summary.pending);
-    if (kAvg) kAvg.textContent = C.moneyBR(summary.avg_ticket_paid);
+    
   }
 
   function bindFinanceDashboardEvents() {
