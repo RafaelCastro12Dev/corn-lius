@@ -14,6 +14,11 @@
  * - Modal fecha sempre no salvar (closeModal no finally)
  * - Trava anti-duplo-salvar (isSaving)
  * - Tratamento amigável de duplicidade (23505) por causa do índice UNIQUE
+ *
+ * ✅ NOVO (Conflito por SALA):
+ * - Aviso em tempo real ao mudar Sala/Horário
+ * - Bloqueio no salvar se a sala já estiver ocupada naquele horário
+ * - Permite trocar sala/horário para resolver (aviso some automaticamente)
  */
 
 (function () {
@@ -50,7 +55,7 @@
   const color = document.getElementById("color");
   const notes = document.getElementById("notes");
   const apptRoom = document.getElementById("apptRoom");
-const attendanceStatus = document.getElementById("attendanceStatus");
+  const attendanceStatus = document.getElementById("attendanceStatus");
 
   // Multi (pode não existir no HTML)
   const multiMode = document.getElementById("multiMode");
@@ -146,6 +151,98 @@ const attendanceStatus = document.getElementById("attendanceStatus");
     if (container) container.style.display = "none";
     else el.style.display = "none";
   }
+
+  // ✅ NOVO: Conflito por SALA (mesma sala + mesmo start_time)
+  async function hasRoomConflict(room, startIso, ignoreId = null) {
+    const r = (room || "").trim().toLowerCase();
+    if (!r || !startIso) return false;
+
+    try {
+      const target = new Date(startIso).toISOString();
+      const appointments = await (C.getAllAppointments?.() ?? []);
+
+      return (appointments || []).some((a) => {
+        if (!a?.room || !a?.start_time) return false;
+
+        const sameRoom = String(a.room).trim().toLowerCase() === r;
+        const sameTime = new Date(a.start_time).toISOString() === target;
+        const notEditingThis = ignoreId ? String(a.id) !== String(ignoreId) : true;
+
+        return sameRoom && sameTime && notEditingThis;
+      });
+    } catch (err) {
+      console.error("❌ Erro ao verificar conflito de sala:", err);
+      // Falha na checagem não deve travar a operação — mas não garante.
+      return false;
+    }
+  }
+
+  // ✅ NOVO: aviso visual dentro do modal (sem depender de HTML)
+  function ensureRoomWarningEl() {
+    const form = appointmentForm || document.getElementById("appointmentForm");
+    if (!form) return null;
+
+    let el = document.getElementById("roomConflictWarning");
+    if (el) return el;
+
+    el = document.createElement("div");
+    el.id = "roomConflictWarning";
+    el.style.display = "none";
+    el.style.margin = "8px 0 0";
+    el.style.padding = "10px 12px";
+    el.style.borderRadius = "12px";
+    el.style.border = "1px solid rgba(220, 38, 38, 0.35)";
+    el.style.background = "rgba(220, 38, 38, 0.08)";
+    el.style.color = "#991b1b";
+    el.style.fontSize = "14px";
+    el.style.fontWeight = "600";
+    el.textContent = "⚠️ Esta sala já tem atendimento neste horário. Troque a sala ou o horário.";
+
+    const roomField =
+      apptRoom?.closest?.(".field") ||
+      apptRoom?.closest?.(".form-group") ||
+      apptRoom?.closest?.(".input-group") ||
+      apptRoom?.parentElement;
+
+    if (roomField && roomField.parentElement) {
+      roomField.parentElement.insertBefore(el, roomField.nextSibling);
+    } else {
+      form.appendChild(el);
+    }
+
+    return el;
+  }
+
+  function setRoomWarningVisible(visible) {
+    const el = ensureRoomWarningEl();
+    if (!el) return;
+    el.style.display = visible ? "block" : "none";
+  }
+
+  // ✅ NOVO: checagem em tempo real ao mudar Sala/Horário
+  const runRoomConflictCheck = debounce(async () => {
+    try {
+      const roomValue = (apptRoom?.value || "").trim();
+      const startValue = (startAt?.value || "").trim();
+
+      if (!roomValue || !startValue) {
+        setRoomWarningVisible(false);
+        return;
+      }
+
+      const startDate = new Date(startValue);
+      if (isNaN(startDate.getTime())) {
+        setRoomWarningVisible(false);
+        return;
+      }
+
+      const conflict = await hasRoomConflict(roomValue, startDate.toISOString(), editingId);
+      setRoomWarningVisible(conflict);
+    } catch (e) {
+      console.warn("⚠️ Room conflict check failed:", e);
+      setRoomWarningVisible(false);
+    }
+  }, 250);
 
   // -----------------------------
   // 2.4 — Resolver lock do professional via email do Auth
@@ -262,7 +359,7 @@ const attendanceStatus = document.getElementById("attendanceStatus");
 
     if (patientSearch) patientSearch.value = "";
     if (patientId) patientId.value = "";
-if (attendanceStatus) attendanceStatus.value = "pending";
+    if (attendanceStatus) attendanceStatus.value = "pending";
 
     if (patientSuggest) {
       patientSuggest.style.display = "none";
@@ -289,6 +386,10 @@ if (attendanceStatus) attendanceStatus.value = "pending";
       modalBackdrop.style.inset = "0";
       modalBackdrop.style.zIndex = "9999";
     }
+
+    // ✅ NOVO: inicializa/limpa aviso e checa conflito assim que abrir
+    setRoomWarningVisible(false);
+    setTimeout(runRoomConflictCheck, 0);
   }
 
   function closeModal() {
@@ -306,6 +407,9 @@ if (attendanceStatus) attendanceStatus.value = "pending";
 
     editingId = null;
     resetMulti();
+
+    // ✅ NOVO: limpa aviso
+    setRoomWarningVisible(false);
   }
 
   // -----------------------------
@@ -529,7 +633,6 @@ if (attendanceStatus) attendanceStatus.value = "pending";
             patientName: patientName,
             professionalName: pro ? pro.name : "",
             attendance_status: a.attendance_status,
-
           },
         });
       });
@@ -555,13 +658,12 @@ if (attendanceStatus) attendanceStatus.value = "pending";
     const events = await buildCalendarEvents();
 
     if (!window.FullCalendar) {
-  console.error("FullCalendar não carregou (CDN bloqueado/instável).");
-  if (typeof calMissing !== "undefined" && calMissing) {
-    calMissing.style.display = "block";
-  }
-  return;
-}
-
+      console.error("FullCalendar não carregou (CDN bloqueado/instável).");
+      if (typeof calMissing !== "undefined" && calMissing) {
+        calMissing.style.display = "block";
+      }
+      return;
+    }
 
     calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: "dayGridMonth",
@@ -584,17 +686,16 @@ if (attendanceStatus) attendanceStatus.value = "pending";
       stickyHeaderDates: true,
       nowIndicator: false,
       views: {
-  dayGridMonth: {
-    dayHeaderFormat: { weekday: "short" }
-  },
-  timeGridWeek: {
-    dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" }
-  },
-  timeGridDay: {
-    dayHeaderFormat: { weekday: "long", day: "2-digit", month: "2-digit" }
-  }
-}
-,
+        dayGridMonth: {
+          dayHeaderFormat: { weekday: "short" }
+        },
+        timeGridWeek: {
+          dayHeaderFormat: { weekday: "short", day: "2-digit", month: "2-digit" }
+        },
+        timeGridDay: {
+          dayHeaderFormat: { weekday: "long", day: "2-digit", month: "2-digit" }
+        }
+      },
 
       selectable: !isReadOnly,
       editable: false,
@@ -626,18 +727,18 @@ if (attendanceStatus) attendanceStatus.value = "pending";
         const room = props.room || "";
 
         const line1 = professionalName ? `${patientName} — ${professionalName}` : patientName;
-       const roomDigits = String(room).replace(/[^0-9]/g, "");
-const roomLabel = roomDigits ? `S${roomDigits}` : String(room);
+        const roomDigits = String(room).replace(/[^0-9]/g, "");
+        const roomLabel = roomDigits ? `S${roomDigits}` : String(room);
 
-// ✅ presença (novo)
-const att = (props.attendance_status || "pending").toString();
-const attIcon =
-  att === "present" ? "✅" :
-  att === "absent"  ? "❌" :
-  "⏳";
+        // ✅ presença (novo)
+        const att = (props.attendance_status || "pending").toString();
+        const attIcon =
+          att === "present" ? "✅" :
+          att === "absent" ? "❌" :
+          "⏳";
 
-return {
-  html: `
+        return {
+          html: `
     <div>
       <div class="ce-top">
         <span class="ce-time">${arg.timeText}</span>
@@ -646,7 +747,7 @@ return {
       <div class="ce-title">${C.escapeHtml(line1)}</div>
     </div>
   `
-};
+        };
       },
 
       eventDidMount: function (info) {
@@ -675,6 +776,9 @@ return {
         if (isReadOnly) return;
         openModal();
         if (startAt) startAt.value = toDatetimeLocalValue(info.start);
+
+        // ✅ NOVO: checar conflito ao selecionar slot
+        setTimeout(runRoomConflictCheck, 0);
       },
 
       eventClick: async function (info) {
@@ -715,9 +819,8 @@ return {
         if (apptRoom) apptRoom.value = event.extendedProps.room || "";
 
         if (attendanceStatus) {
-  attendanceStatus.value = event.extendedProps.attendance_status || "pending";
-}
-
+          attendanceStatus.value = event.extendedProps.attendance_status || "pending";
+        }
 
         if (btnDelete) btnDelete.style.display = "inline-flex";
 
@@ -731,6 +834,10 @@ return {
           modalBackdrop.style.inset = "0";
           modalBackdrop.style.zIndex = "9999";
         }
+
+        // ✅ NOVO: ao abrir edição, checar conflito de sala/horário
+        setRoomWarningVisible(false);
+        setTimeout(runRoomConflictCheck, 0);
       },
 
       datesSet: function (info) {
@@ -751,9 +858,9 @@ return {
   }
 
   // -----------------------------
-  // Validação (SEM END)
+  // Validação (SEM END) - agora ASYNC por conflito de SALA
   // -----------------------------
-  function validateForm() {
+  async function validateForm() {
     const patientIdValue = patientId?.value || "";
     const professionalId = isProfessional
       ? (lockedProfessionalId || (professionalSelect?.value || ""))
@@ -769,10 +876,20 @@ return {
 
     const dateYmd = ymdLocal(startDate);
     if (blockedHolidays.includes(dateYmd)) {
-  console.warn("⚠️ Agendando em feriado:", dateYmd);
-  // não bloqueia
-}
+      console.warn("⚠️ Agendando em feriado:", dateYmd);
+      // não bloqueia
+    }
 
+    // ✅ NOVO: Conflito por SALA (bloqueia no salvar)
+    const roomValue = (apptRoom?.value || "").trim();
+    if (roomValue) {
+      const conflict = await hasRoomConflict(roomValue, startDate.toISOString(), editingId);
+      if (conflict) {
+        setRoomWarningVisible(true);
+        toast("⚠️ Já existe atendimento agendado para esta sala neste horário. Troque a sala ou o horário.");
+        return null;
+      }
+    }
 
     return {
       patient_id: patientIdValue,
@@ -786,7 +903,7 @@ return {
   }
 
   async function saveSingle() {
-    const data = validateForm();
+    const data = await validateForm();
     if (!data) return;
 
     if (editingId) await C.updateAppointment(editingId, data);
@@ -815,7 +932,7 @@ return {
       const starts = Array.from(multiList?.querySelectorAll("[data-mstart]") || []);
       if (!starts.length) return toast("⚠️ Clique em 'Gerar campos' e preencha os horários.");
 
-      const base = validateForm();
+      const base = await validateForm();
       if (!base) return;
 
       const payloads = [];
@@ -828,10 +945,21 @@ return {
         if (isNaN(sDate.getTime())) return toast("⚠️ Datas inválidas no agendamento múltiplo.");
 
         const dateYmd = ymdLocal(sDate);
-       if (blockedHolidays.includes(dateYmd)) {
-  console.warn("⚠️ Agendamento múltiplo em feriado:", dateYmd);
-  // não bloqueia
-}
+        if (blockedHolidays.includes(dateYmd)) {
+          console.warn("⚠️ Agendamento múltiplo em feriado:", dateYmd);
+          // não bloqueia
+        }
+
+        // ✅ NOVO: Conflito por SALA também no Multi (bloqueia antes de salvar)
+        const roomValue = (base.room || "").trim();
+        if (roomValue) {
+          const conflict = await hasRoomConflict(roomValue, sDate.toISOString(), null);
+          if (conflict) {
+            setRoomWarningVisible(true);
+            toast(`⚠️ Sala ocupada: já existe atendimento na sala "${roomValue}" em ${toDatetimeLocalValue(sDate)}.`);
+            return;
+          }
+        }
 
         payloads.push({ ...base, start_time: sDate.toISOString() });
       }
@@ -845,7 +973,8 @@ return {
       const msg = (err?.message || err?.error?.message || "").toString().toLowerCase();
 
       if (code === "23505" || msg.includes("duplicate") || msg.includes("unique")) {
-        toast("⚠️ Já existe um agendamento nesse horário para este paciente/profissional.");
+        // ✅ mensagem mais neutra (serve para conflito de sala também, se houver índice no banco)
+        toast("⚠️ Já existe um agendamento conflitante (horário/sala).");
         return;
       }
 
@@ -925,6 +1054,10 @@ return {
     });
   }
 
+  // ✅ NOVO: listeners para checar conflito em tempo real
+  if (apptRoom) apptRoom.addEventListener("input", runRoomConflictCheck);
+  if (startAt) startAt.addEventListener("input", runRoomConflictCheck);
+
   async function applyPatientDefaultsById(pId) {
     if (!pId) return;
     try {
@@ -978,6 +1111,9 @@ return {
       await applyPatientDefaultsById(prePatientId);
 
       if (patientSuggest) patientSuggest.style.display = "none";
+
+      // ✅ NOVO: checar conflito logo ao abrir via URL
+      setTimeout(runRoomConflictCheck, 0);
 
       history.replaceState(null, "", "agenda.html");
     }, 300);
