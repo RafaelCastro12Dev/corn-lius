@@ -27,10 +27,10 @@
   const btnGoAgendaTop = document.getElementById("btnGoAgendaTop");
   const btnGoAgenda = document.getElementById("btnGoAgenda");
 
-  // ✅ NOVO: botão "Inativos" (adicione no index.html)
+  // ✅ NOVO: botão "Inativos"
   const btnToggleInactive = document.getElementById("btnToggleInactive");
 
-  // ✅ NOVO: Lista alfabética de todos os pacientes (adicione no index.html)
+  // ✅ NOVO: Lista alfabética de todos os pacientes
   const patientsAll = document.getElementById("patientsAll");
   const btnMorePatients = document.getElementById("btnMorePatients");
 
@@ -42,8 +42,8 @@
     window.location.href = "agenda.html?new=1";
   }
 
-  if (btnGoAgendaTop) btnGoAgendaTop.addEventListener("click", goAgenda); // Abrir agenda
-  if (btnGoAgenda) btnGoAgenda.addEventListener("click", goAgendaNew); // Criar agendamento
+  if (btnGoAgendaTop) btnGoAgendaTop.addEventListener("click", goAgenda);
+  if (btnGoAgenda) btnGoAgenda.addEventListener("click", goAgendaNew);
 
   // =============================================================================
   // Toggle: mostrar SOMENTE inativos
@@ -51,9 +51,8 @@
   let showInactiveOnly = localStorage.getItem("cornelius_show_inactive_only") === "1";
 
   if (localStorage.getItem("cornelius_show_inactive_only") == null) {
-  localStorage.setItem("cornelius_show_inactive_only", "0");
-}
-
+    localStorage.setItem("cornelius_show_inactive_only", "0");
+  }
 
   function syncInactiveButtonUI() {
     if (!btnToggleInactive) return;
@@ -74,11 +73,11 @@
       syncInactiveButtonUI();
 
       loadAllPatients(true);
-      // Re-roda busca se houver texto
+
       const v = (q?.value || "").trim();
-      if (v) search();
-      else {
-        // Se o campo estiver vazio, só limpa visual (mantém comportamento atual)
+      if (v) {
+        search();
+      } else {
         if (results) {
           results.innerHTML = "";
           results.style.display = "none";
@@ -88,11 +87,6 @@
     });
   }
 
-
-      // ✅ Recarrega a lista alfabética
-      loadAllPatients(true);
-
-  
   // =============================================================================
   // DASHBOARD FINANCEIRO (HOME) - abaixo da busca por CPF
   // =============================================================================
@@ -157,10 +151,11 @@
         </div>
       </div>
 
-      <div class="actions" style="justify-content:flex-start; margin-top: 8px;">
+      <div class="actions" style="justify-content:flex-start; margin-top: 8px; gap:10px; flex-wrap:wrap;">
         <button class="btn primary" id="finApply">Aplicar</button>
         <button class="btn" id="finThisMonth">Este mês</button>
         <button class="btn" id="finClearFilters">Limpar filtros</button>
+        <button class="btn" id="finExportCsv" type="button">Exportar CSV</button>
         <span class="text-sm text-secondary" id="finHint" style="margin-left: 6px;"></span>
       </div>
 
@@ -177,33 +172,50 @@
           <div class="text-sm text-secondary">Pendente</div>
           <div style="font-size:22px; font-weight:900;" id="kpiPending">—</div>
         </div>
-      
+      </div>
+
+      <div class="card" style="padding:14px; border-radius:16px; margin-top:14px;">
+        <div class="card-title">
+          <h2 style="font-size:16px; margin:0;">Detalhamento por paciente</h2>
+          <small>Busca por nome ou CPF sem alterar os KPIs</small>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr auto; gap: 12px; align-items:end;">
+          <div class="field">
+            <label>Paciente</label>
+            <input id="finPatient" type="text" placeholder="Ex.: Rafael Silva ou CPF">
+          </div>
+
+          <div class="field" style="display:flex; align-items:flex-end; padding-bottom:1px;">
+            <button class="btn" id="finSearchPatient" type="button">Buscar paciente</button>
+          </div>
+        </div>
+
+        <div id="finResults" style="margin-top:14px;"></div>
       </div>
     `;
 
-    // Insere abaixo de "Todos os pacientes" e acima de "Próximos atendimentos"
-    // Observação: o layout da Home usa grid 2-colunas; forçamos o card a ocupar a linha inteira.
- // ✅ Insere o Financeiro exatamente no placeholder do HTML
-const mount = document.getElementById("financeMount");
-if (mount) {
-  mount.replaceWith(wrap);
-} else {
-  // fallback: logo após a seção de pacientes
-  const patientsSection = document.getElementById("patientsSection");
-  if (patientsSection && patientsSection.parentElement) {
-    patientsSection.parentElement.insertBefore(wrap, patientsSection.nextSibling);
-  } else if (q && q.parentElement) {
-    q.parentElement.insertAdjacentElement("afterend", wrap);
+    const mount = document.getElementById("financeMount");
+    if (mount) {
+      mount.replaceWith(wrap);
+    } else {
+      const patientsSection = document.getElementById("patientsSection");
+      if (patientsSection && patientsSection.parentElement) {
+        patientsSection.parentElement.insertBefore(wrap, patientsSection.nextSibling);
+      } else if (q && q.parentElement) {
+        q.parentElement.insertAdjacentElement("afterend", wrap);
+      }
+    }
   }
-}}
 
   function monthRangeISO(monthYYYYMM) {
-    // monthYYYYMM: "2026-02"
-    if (!monthYYYYMM || !/^\d{4}-\d{2}$/.test(monthYYYYMM)) return { fromISO: null, toISO: null };
+    if (!monthYYYYMM || !/^\d{4}-\d{2}$/.test(monthYYYYMM)) {
+      return { fromISO: null, toISO: null };
+    }
 
     const [y, m] = monthYYYYMM.split("-").map(Number);
     const from = new Date(y, m - 1, 1, 0, 0, 0);
-    const to = new Date(y, m, 0, 23, 59, 59); // último dia do mês
+    const to = new Date(y, m, 0, 23, 59, 59);
 
     return { fromISO: from.toISOString(), toISO: to.toISOString() };
   }
@@ -212,17 +224,25 @@ if (mount) {
     const sel = document.getElementById("finProfessional");
     if (!sel || !window.Cornelius) return;
 
-    // tenta achar função existente (você já tem getAllProfessionals)
-    const fn = ["getAllProfessionals", "getProfessionals", "listProfessionals"].find((n) => typeof C[n] === "function");
+    const fn = ["getAllProfessionals", "getProfessionals", "listProfessionals"].find(
+      (n) => typeof C[n] === "function"
+    );
     if (!fn) return;
 
     try {
       const list = await C[fn]();
       const current = sel.value || "ALL";
 
-      sel.innerHTML = `<option value="ALL">Todos</option>` + (list || [])
-        .map((p) => `<option value="${C.escapeHtml(p.id)}">${C.escapeHtml(p.name || "Profissional")}</option>`)
-        .join("");
+      sel.innerHTML =
+        `<option value="ALL">Todos</option>` +
+        (list || [])
+          .map(
+            (p) =>
+              `<option value="${C.escapeHtml(p.id)}">${C.escapeHtml(
+                p.name || "Profissional"
+              )}</option>`
+          )
+          .join("");
 
       sel.value = current;
     } catch (e) {
@@ -249,13 +269,10 @@ if (mount) {
     const kPaidGross = document.getElementById("kpiPaidGross");
     const kPaidNet = document.getElementById("kpiPaidNet");
     const kPending = document.getElementById("kpiPending");
-    
 
-    // placeholders
     if (kPaidGross) kPaidGross.textContent = "…";
     if (kPaidNet) kPaidNet.textContent = "…";
     if (kPending) kPending.textContent = "…";
-   
 
     const summary = await C.calcDashboardSummary({
       fromISO,
@@ -269,7 +286,216 @@ if (mount) {
     if (kPaidGross) kPaidGross.textContent = C.moneyBR(summary.paid_gross);
     if (kPaidNet) kPaidNet.textContent = C.moneyBR(summary.paid_net_estimated);
     if (kPending) kPending.textContent = C.moneyBR(summary.pending);
-    
+  }
+
+  function renderFinanceDetails(rows) {
+    const el = document.getElementById("finResults");
+    if (!el) return;
+
+    if (!rows || !rows.length) {
+      el.innerHTML = `
+        <div class="empty" style="padding: 10px 0;">
+          <p>Nenhum pagamento encontrado para os filtros informados.</p>
+        </div>
+      `;
+      return;
+    }
+
+    el.innerHTML = rows
+      .map((p) => {
+        const patientName = p?.patient?.name || "Paciente não encontrado";
+        const patientCpf = p?.patient?.cpf ? C.formatCPF(p.patient.cpf) : "—";
+        const profName = p?.professional?.name || "—";
+        const paymentDate = p?.payment_date
+          ? new Date(p.payment_date).toLocaleDateString("pt-BR")
+          : "—";
+
+        const methodMap = {
+          PIX: "Pix",
+          CARD: "Cartão",
+          CASH: "Dinheiro",
+          TRANSFER: "Transferência",
+          OTHER: "Outro"
+        };
+
+        const statusMap = {
+          PAID: "Pago",
+          PENDING: "Pendente",
+          PARTIAL: "Parcial",
+          FREE: "Isento"
+        };
+
+        const methodLabel = methodMap[p?.method] || (p?.method || "—");
+        const statusLabel = statusMap[p?.status] || (p?.status || "—");
+
+        return `
+          <div class="list-item">
+            <div class="list-item-content">
+              <div class="list-item-title">${C.escapeHtml(patientName)}</div>
+              <div class="text-sm text-secondary">CPF: ${C.escapeHtml(patientCpf)}</div>
+              <div class="text-sm text-secondary">
+                Pago em: ${C.escapeHtml(paymentDate)} •
+                Método: ${C.escapeHtml(methodLabel)} •
+                Status: ${C.escapeHtml(statusLabel)} •
+                Profissional: ${C.escapeHtml(profName)}
+              </div>
+            </div>
+            <div style="font-weight:900; white-space:nowrap;">
+              ${C.moneyBR(p?.amount || 0)}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  async function refreshFinanceDetails() {
+    if (typeof C.listPaymentsDetailed !== "function") {
+      console.warn("listPaymentsDetailed não existe. Verifique supabase-api.js.");
+      return;
+    }
+
+    const month = document.getElementById("finMonth")?.value || "";
+    const status = document.getElementById("finStatus")?.value || "ALL";
+    const method = document.getElementById("finMethod")?.value || "ALL";
+    const professionalId = document.getElementById("finProfessional")?.value || "ALL";
+    const patientQuery = document.getElementById("finPatient")?.value?.trim() || "";
+
+    const { fromISO, toISO } = monthRangeISO(month);
+
+    const el = document.getElementById("finResults");
+    if (el) {
+      if (!patientQuery) {
+        el.innerHTML = `
+          <div class="empty" style="padding: 10px 0;">
+            <p>Digite um nome ou CPF para visualizar o detalhamento.</p>
+          </div>
+        `;
+        return;
+      }
+
+      el.innerHTML = `<div class="text-sm text-secondary">Carregando...</div>`;
+    }
+
+    const rows = await C.listPaymentsDetailed({
+      fromISO,
+      toISO,
+      status,
+      method,
+      professionalId,
+      patientQuery,
+      limit: 5000
+    });
+
+    renderFinanceDetails(rows);
+  }
+
+  function escapeCsv(value) {
+    if (value == null) return "";
+    const str = String(value).replace(/"/g, '""');
+    return `"${str}"`;
+  }
+
+  function formatDateBR(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("pt-BR");
+  }
+
+  async function exportFinanceCSV() {
+    if (typeof C.listPaymentsDetailed !== "function") {
+      console.warn("listPaymentsDetailed não existe. Verifique supabase-api.js.");
+      return;
+    }
+
+    const month = document.getElementById("finMonth")?.value || "";
+    const status = document.getElementById("finStatus")?.value || "ALL";
+    const method = document.getElementById("finMethod")?.value || "ALL";
+    const professionalId = document.getElementById("finProfessional")?.value || "ALL";
+    const patientQuery = document.getElementById("finPatient")?.value?.trim() || "";
+
+    const { fromISO, toISO } = monthRangeISO(month);
+
+    const rows = await C.listPaymentsDetailed({
+      fromISO,
+      toISO,
+      status,
+      method,
+      professionalId,
+      patientQuery,
+      limit: 5000
+    });
+
+    if (!rows || !rows.length) {
+      C.toast("Nenhum pagamento encontrado para exportar");
+      return;
+    }
+
+    const methodMap = {
+      PIX: "Pix",
+      CARD: "Cartão",
+      CASH: "Dinheiro",
+      TRANSFER: "Transferência",
+      OTHER: "Outro"
+    };
+
+    const statusMap = {
+      PAID: "Pago",
+      PENDING: "Pendente",
+      PARTIAL: "Parcial",
+      FREE: "Isento"
+    };
+
+    const header = [
+      "Data",
+      "Paciente",
+      "CPF",
+      "Profissional",
+      "Método",
+      "Status",
+      "Valor",
+      "Observação"
+    ];
+
+    const lines = rows.map((p) => {
+      const patientName = p?.patient?.name || "";
+      const patientCpf = p?.patient?.cpf ? C.formatCPF(p.patient.cpf) : "";
+      const profName = p?.professional?.name || "";
+      const paymentDate = formatDateBR(p?.payment_date);
+      const methodLabel = methodMap[p?.method] || p?.method || "";
+      const statusLabel = statusMap[p?.status] || p?.status || "";
+      const amount = (parseFloat(p?.amount) || 0).toFixed(2).replace(".", ",");
+      const note = p?.note || "";
+
+      return [
+        escapeCsv(paymentDate),
+        escapeCsv(patientName),
+        escapeCsv(patientCpf),
+        escapeCsv(profName),
+        escapeCsv(methodLabel),
+        escapeCsv(statusLabel),
+        escapeCsv(amount),
+        escapeCsv(note)
+      ].join(";");
+    });
+
+    const csvContent = "\uFEFF" + [header.join(";"), ...lines].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const filename = `financeiro_${month || "geral"}.csv`;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+
+    C.toast("CSV exportado com sucesso");
   }
 
   function bindFinanceDashboardEvents() {
@@ -281,8 +507,21 @@ if (mount) {
     const finStatus = document.getElementById("finStatus");
     const finMethod = document.getElementById("finMethod");
     const finProfessional = document.getElementById("finProfessional");
+    const finPatient = document.getElementById("finPatient");
+    const btnSearchPatient = document.getElementById("finSearchPatient");
+    const btnExportCsv = document.getElementById("finExportCsv");
 
-    if (btnApply) btnApply.addEventListener("click", refreshFinanceDashboard);
+    if (btnExportCsv) {
+      btnExportCsv.addEventListener("click", exportFinanceCSV);
+    }
+
+    if (btnApply) {
+      btnApply.addEventListener("click", async () => {
+        await refreshFinanceDashboard();
+        const hasPatient = (finPatient?.value || "").trim();
+        if (hasPatient) await refreshFinanceDetails();
+      });
+    }
 
     if (btnThis) {
       btnThis.addEventListener("click", async () => {
@@ -291,6 +530,8 @@ if (mount) {
         const mm = String(d.getMonth() + 1).padStart(2, "0");
         if (finMonth) finMonth.value = `${yyyy}-${mm}`;
         await refreshFinanceDashboard();
+        const hasPatient = (finPatient?.value || "").trim();
+        if (hasPatient) await refreshFinanceDetails();
       });
     }
 
@@ -299,18 +540,34 @@ if (mount) {
         if (finStatus) finStatus.value = "ALL";
         if (finMethod) finMethod.value = "ALL";
         if (finProfessional) finProfessional.value = "ALL";
+        if (finPatient) finPatient.value = "";
         await refreshFinanceDashboard();
+        await refreshFinanceDetails();
       });
     }
 
-    // auto-refresh em mudanças
+    if (btnSearchPatient) {
+      btnSearchPatient.addEventListener("click", refreshFinanceDetails);
+    }
+
+    if (finPatient) {
+      finPatient.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") refreshFinanceDetails();
+      });
+    }
+
     [finMonth, finStatus, finMethod, finProfessional].forEach((el) => {
       if (!el) return;
-      el.addEventListener("change", () => refreshFinanceDashboard());
+      el.addEventListener("change", async () => {
+        await refreshFinanceDashboard();
+
+        const hasPatient = (document.getElementById("finPatient")?.value || "").trim();
+        if (hasPatient) await refreshFinanceDetails();
+      });
     });
   }
 
-// =============================================================================
+  // =============================================================================
   // BUSCAR PACIENTES
   // =============================================================================
   async function search() {
@@ -326,7 +583,6 @@ if (mount) {
     }
 
     try {
-      // Se estiver ON: traz também inativos e filtra só is_active=false
       const patientsRaw = showInactiveOnly
         ? await C.searchPatients(query, { includeInactive: true })
         : await C.searchPatients(query);
@@ -399,7 +655,6 @@ if (mount) {
             ? `<span class="color-dot" style="background:${C.escapeHtml(patient.color)}"></span>`
             : "";
 
-          // Formatar data e hora
           const startDate = new Date(a.start_time);
           const dateStr = startDate.toLocaleDateString("pt-BR", {
             day: "2-digit",
@@ -456,19 +711,13 @@ if (mount) {
     if (v) search();
   }
 
-  // ao carregar
   runSearchIfNeeded();
-
-  // ao voltar pelo botão "Voltar" do navegador (bfcache)
   window.addEventListener("pageshow", runSearchIfNeeded);
-
 
   // =============================================================================
   // LISTA ALFABÉTICA (TODOS OS PACIENTES) - NÃO INTERFERE NA BUSCA
   // =============================================================================
-  // Sem TDZ: usar var aqui evita erro "before initialization" caso algum handler dispare cedo.
   var allPatientsOffset = 0;
-  // Mostrar poucos por padrão (UX) e permitir expandir
   var ALL_PATIENTS_PAGE_SIZE = 5;
   var ALL_PATIENTS_EXPANDED = false;
   var ALL_PATIENTS_EXPANDED_PAGE_SIZE = 80;
@@ -485,8 +734,6 @@ if (mount) {
     }
 
     try {
-      // Precisa existir no supabase-api.js:
-      // C.listPatientsAlphabetical({ includeInactive?: boolean, limit?: number, offset?: number })
       if (typeof C.listPatientsAlphabetical !== "function") {
         patientsAll.innerHTML =
           '<div class="text-sm text-secondary">⚠️ Lista alfabética não configurada. ' +
@@ -495,44 +742,60 @@ if (mount) {
         return;
       }
 
-      // Se estiver ON, pedimos includeInactive:true e filtramos só os inativos (mesma regra da busca)
       const listRaw = showInactiveOnly
-        ? await C.listPatientsAlphabetical({ includeInactive: true, limit: (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE), offset: allPatientsOffset })
-        : await C.listPatientsAlphabetical({ limit: (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE), offset: allPatientsOffset });
+        ? await C.listPatientsAlphabetical({
+            includeInactive: true,
+            limit: ALL_PATIENTS_EXPANDED
+              ? ALL_PATIENTS_EXPANDED_PAGE_SIZE
+              : ALL_PATIENTS_PAGE_SIZE,
+            offset: allPatientsOffset
+          })
+        : await C.listPatientsAlphabetical({
+            limit: ALL_PATIENTS_EXPANDED
+              ? ALL_PATIENTS_EXPANDED_PAGE_SIZE
+              : ALL_PATIENTS_PAGE_SIZE,
+            offset: allPatientsOffset
+          });
 
       const list = showInactiveOnly
         ? (listRaw || []).filter((p) => p && p.is_active === false)
         : (listRaw || []);
 
-      // Blindagem: mesmo que a API ignore limit/range, nunca renderize além do pageSize pedido
-      const pageSize = (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE);
+      const pageSize = ALL_PATIENTS_EXPANDED
+        ? ALL_PATIENTS_EXPANDED_PAGE_SIZE
+        : ALL_PATIENTS_PAGE_SIZE;
+
       const safeList = (list || []).slice(0, pageSize);
 
-      // Render incremental
-      const html = (safeList || []).map((p) => {
-        const colorDot = `<span class="color-dot" style="background:${C.escapeHtml(p.color)}"></span>`;
-        const cpfFormatted = p.cpf ? C.formatCPF(p.cpf) : "";
-        const cpfInfo = cpfFormatted ? `<div class="text-sm text-secondary">CPF: ${cpfFormatted}</div>` : "";
+      const html = (safeList || [])
+        .map((p) => {
+          const colorDot = `<span class="color-dot" style="background:${C.escapeHtml(p.color)}"></span>`;
+          const cpfFormatted = p.cpf ? C.formatCPF(p.cpf) : "";
+          const cpfInfo = cpfFormatted
+            ? `<div class="text-sm text-secondary">CPF: ${cpfFormatted}</div>`
+            : "";
 
-        return `
-          <a href="paciente.html?id=${encodeURIComponent(p.id)}" class="list-item">
-            <div class="list-item-content">
-              <div class="list-item-title">
-                ${colorDot}
-                ${C.escapeHtml(p.name)}
+          return `
+            <a href="paciente.html?id=${encodeURIComponent(p.id)}" class="list-item">
+              <div class="list-item-content">
+                <div class="list-item-title">
+                  ${colorDot}
+                  ${C.escapeHtml(p.name)}
+                </div>
+                ${cpfInfo}
               </div>
-              ${cpfInfo}
-            </div>
-            <span class="chevron">›</span>
-          </a>
-        `;
-      }).join("");
+              <span class="chevron">›</span>
+            </a>
+          `;
+        })
+        .join("");
 
       patientsAll.insertAdjacentHTML("beforeend", html);
 
-      // Paginação simples
       if (btnMorePatients) {
-        const gotFull = (safeList || []).length === (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE);
+        const gotFull =
+          (safeList || []).length ===
+          (ALL_PATIENTS_EXPANDED ? ALL_PATIENTS_EXPANDED_PAGE_SIZE : ALL_PATIENTS_PAGE_SIZE);
         btnMorePatients.style.display = gotFull ? "inline-flex" : "none";
       }
 
@@ -545,28 +808,26 @@ if (mount) {
 
   if (btnMorePatients) {
     btnMorePatients.addEventListener("click", () => {
-    if (!ALL_PATIENTS_EXPANDED) {
-      ALL_PATIENTS_EXPANDED = true;
-      btnMorePatients.textContent = "Carregar mais";
-      loadAllPatients(true);
-      return;
-    }
-    loadAllPatients(false);
-  });
+      if (!ALL_PATIENTS_EXPANDED) {
+        ALL_PATIENTS_EXPANDED = true;
+        btnMorePatients.textContent = "Carregar mais";
+        loadAllPatients(true);
+        return;
+      }
+      loadAllPatients(false);
+    });
   }
 
   // =============================================================================
   // EVENT LISTENERS
   // =============================================================================
   if (q) {
-    // Buscar ao digitar (debounce)
     let timeout = null;
     q.addEventListener("input", () => {
       clearTimeout(timeout);
       timeout = setTimeout(search, 300);
     });
 
-    // Buscar ao pressionar Enter
     q.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         clearTimeout(timeout);
@@ -581,7 +842,10 @@ if (mount) {
   const RT = window.CorneliusRealtime;
   if (RT) {
     RT.on("appointments:change", () => loadUpcoming());
-    RT.on("patients:change", () => { runSearchIfNeeded(); loadAllPatients(true); });
+    RT.on("patients:change", () => {
+      runSearchIfNeeded();
+      loadAllPatients(true);
+    });
     RT.on("realtime:reconnected", () => {
       loadUpcoming();
       runSearchIfNeeded();
@@ -595,121 +859,122 @@ if (mount) {
   loadUpcoming();
   loadAllPatients(true);
 
-  // Financeiro Geral (Dashboard)
   buildFinanceDashboardUI();
-  fillDashboardProfessionals().then(() => refreshFinanceDashboard());
+  fillDashboardProfessionals().then(async () => {
+    await refreshFinanceDashboard();
+    await refreshFinanceDetails();
+  });
   bindFinanceDashboardEvents();
 
+  // =============================================================================
+  // CARROSSEL (HOME) - "Todos os pacientes"
+  // =============================================================================
+  const patientsCarousel = document.getElementById("patientsCarousel");
+  const btnPrevCarousel = document.querySelector(".carousel-btn.prev");
+  const btnNextCarousel = document.querySelector(".carousel-btn.next");
+  const carouselDots = document.getElementById("carouselDots");
 
-
-// =============================================================================
-// CARROSSEL (HOME) - "Todos os pacientes"
-// =============================================================================
-const patientsCarousel = document.getElementById("patientsCarousel");
-const btnPrevCarousel = document.querySelector(".carousel-btn.prev");
-const btnNextCarousel = document.querySelector(".carousel-btn.next");
-const carouselDots = document.getElementById("carouselDots");
-
-function ensureDots() {
-  if (!carouselDots || !patientsAll || !patientsCarousel) return;
-  // Recria dots conforme quantidade de cards
-  const cards = patientsAll.querySelectorAll(".list-item");
-  carouselDots.innerHTML = "";
-  const maxDots = Math.min(cards.length, 30); // evita poluição em bases grandes
-  for (let i = 0; i < maxDots; i++) {
-    const d = document.createElement("span");
-    d.className = "carousel-dot" + (i === 0 ? " is-active" : "");
-    carouselDots.appendChild(d);
-  }
-}
-
-function updateCarouselState() {
-  if (!patientsCarousel || !patientsAll) return;
-
-  const maxScroll = patientsCarousel.scrollWidth - patientsCarousel.clientWidth;
-  const x = patientsCarousel.scrollLeft;
-
-  if (btnPrevCarousel) btnPrevCarousel.disabled = x <= 2;
-  if (btnNextCarousel) btnNextCarousel.disabled = x >= (maxScroll - 2);
-
-  // Atualiza dot ativo com base no card mais próximo
-  if (carouselDots) {
-    const dots = Array.from(carouselDots.querySelectorAll(".carousel-dot"));
-    if (dots.length) {
-      const cards = Array.from(patientsAll.querySelectorAll(".list-item"));
-      let active = 0;
-      const left = patientsCarousel.scrollLeft;
-      for (let i = 0; i < cards.length; i++) {
-        if (cards[i].offsetLeft >= left - 6) { active = i; break; }
-      }
-      active = Math.min(active, dots.length - 1);
-      dots.forEach((d, i) => d.classList.toggle("is-active", i === active));
+  function ensureDots() {
+    if (!carouselDots || !patientsAll || !patientsCarousel) return;
+    const cards = patientsAll.querySelectorAll(".list-item");
+    carouselDots.innerHTML = "";
+    const maxDots = Math.min(cards.length, 30);
+    for (let i = 0; i < maxDots; i++) {
+      const d = document.createElement("span");
+      d.className = "carousel-dot" + (i === 0 ? " is-active" : "");
+      carouselDots.appendChild(d);
     }
   }
-}
 
-function scrollByOneCard(dir) {
-  if (!patientsCarousel || !patientsAll) return;
-  const cards = Array.from(patientsAll.querySelectorAll(".list-item"));
-  if (!cards.length) return;
+  function updateCarouselState() {
+    if (!patientsCarousel || !patientsAll) return;
 
-  const left = patientsCarousel.scrollLeft;
-  let idx = 0;
-  for (let i = 0; i < cards.length; i++) {
-    if (cards[i].offsetLeft >= left - 6) { idx = i; break; }
+    const maxScroll = patientsCarousel.scrollWidth - patientsCarousel.clientWidth;
+    const x = patientsCarousel.scrollLeft;
+
+    if (btnPrevCarousel) btnPrevCarousel.disabled = x <= 2;
+    if (btnNextCarousel) btnNextCarousel.disabled = x >= maxScroll - 2;
+
+    if (carouselDots) {
+      const dots = Array.from(carouselDots.querySelectorAll(".carousel-dot"));
+      if (dots.length) {
+        const cards = Array.from(patientsAll.querySelectorAll(".list-item"));
+        let active = 0;
+        const left = patientsCarousel.scrollLeft;
+        for (let i = 0; i < cards.length; i++) {
+          if (cards[i].offsetLeft >= left - 6) {
+            active = i;
+            break;
+          }
+        }
+        active = Math.min(active, dots.length - 1);
+        dots.forEach((d, i) => d.classList.toggle("is-active", i === active));
+      }
+    }
   }
-  idx = Math.max(0, Math.min(cards.length - 1, idx + dir));
-  patientsCarousel.scrollTo({ left: cards[idx].offsetLeft, behavior: "smooth" });
-}
 
-if (btnPrevCarousel) btnPrevCarousel.addEventListener("click", () => scrollByOneCard(-1));
-if (btnNextCarousel) btnNextCarousel.addEventListener("click", () => scrollByOneCard(+1));
+  function scrollByOneCard(dir) {
+    if (!patientsCarousel || !patientsAll) return;
+    const cards = Array.from(patientsAll.querySelectorAll(".list-item"));
+    if (!cards.length) return;
 
-if (patientsCarousel) {
-  // Drag-to-scroll desktop
-  let isDown = false, startX = 0, startLeft = 0;
+    const left = patientsCarousel.scrollLeft;
+    let idx = 0;
+    for (let i = 0; i < cards.length; i++) {
+      if (cards[i].offsetLeft >= left - 6) {
+        idx = i;
+        break;
+      }
+    }
+    idx = Math.max(0, Math.min(cards.length - 1, idx + dir));
+    patientsCarousel.scrollTo({ left: cards[idx].offsetLeft, behavior: "smooth" });
+  }
 
-  patientsCarousel.addEventListener("mousedown", (e) => {
-    isDown = true;
-    patientsCarousel.classList.add("is-dragging");
-    startX = e.pageX;
-    startLeft = patientsCarousel.scrollLeft;
-  });
+  if (btnPrevCarousel) btnPrevCarousel.addEventListener("click", () => scrollByOneCard(-1));
+  if (btnNextCarousel) btnNextCarousel.addEventListener("click", () => scrollByOneCard(+1));
 
-  window.addEventListener("mouseup", () => {
-    isDown = false;
-    patientsCarousel.classList.remove("is-dragging");
-  });
+  if (patientsCarousel) {
+    let isDown = false;
+    let startX = 0;
+    let startLeft = 0;
 
-  patientsCarousel.addEventListener("mouseleave", () => {
-    isDown = false;
-    patientsCarousel.classList.remove("is-dragging");
-  });
+    patientsCarousel.addEventListener("mousedown", (e) => {
+      isDown = true;
+      patientsCarousel.classList.add("is-dragging");
+      startX = e.pageX;
+      startLeft = patientsCarousel.scrollLeft;
+    });
 
-  patientsCarousel.addEventListener("mousemove", (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const dx = (e.pageX - startX) * 1.15;
-    patientsCarousel.scrollLeft = startLeft - dx;
-  });
+    window.addEventListener("mouseup", () => {
+      isDown = false;
+      patientsCarousel.classList.remove("is-dragging");
+    });
 
-  patientsCarousel.addEventListener("scroll", () => {
-    // throttle simples
-    window.requestAnimationFrame(updateCarouselState);
-  });
-}
+    patientsCarousel.addEventListener("mouseleave", () => {
+      isDown = false;
+      patientsCarousel.classList.remove("is-dragging");
+    });
 
-// Observa mudanças na lista (quando carrega mais / toggla inativos) para refazer dots e estado
-if (patientsAll && typeof MutationObserver !== "undefined") {
-  const obs = new MutationObserver(() => {
-    ensureDots();
-    updateCarouselState();
-  });
-  obs.observe(patientsAll, { childList: true, subtree: false });
-}
+    patientsCarousel.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const dx = (e.pageX - startX) * 1.15;
+      patientsCarousel.scrollLeft = startLeft - dx;
+    });
 
-// Inicial
-ensureDots();
-updateCarouselState();
+    patientsCarousel.addEventListener("scroll", () => {
+      window.requestAnimationFrame(updateCarouselState);
+    });
+  }
 
+  if (patientsAll && typeof MutationObserver !== "undefined") {
+    const obs = new MutationObserver(() => {
+      ensureDots();
+      updateCarouselState();
+    });
+    obs.observe(patientsAll, { childList: true, subtree: false });
+  }
+
+  ensureDots();
+  updateCarouselState();
 })();

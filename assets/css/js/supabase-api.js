@@ -1049,6 +1049,67 @@ async function listPayments(options = {}) {
   }
 }
 
+async function listPaymentsDetailed(options = {}) {
+  const {
+    fromISO = null,
+    toISO = null,
+    status = "ALL",
+    method = "ALL",
+    professionalId = "ALL",
+    patientQuery = "",
+    limit = 5000
+  } = options || {};
+
+  try {
+    let q = sb
+      .from("payments")
+      .select(`
+        id,
+        amount,
+        payment_date,
+        status,
+        method,
+        professional_id,
+        patient_id,
+        card_fee,
+        note,
+        patient:patients(id, name, cpf),
+        professional:professionals(id, name)
+      `)
+      .order("payment_date", { ascending: false })
+      .limit(limit);
+
+    if (fromISO) q = q.gte("payment_date", fromISO);
+    if (toISO) q = q.lte("payment_date", toISO);
+
+    if (status && status !== "ALL") q = q.eq("status", status);
+    if (method && method !== "ALL") q = q.eq("method", method);
+    if (professionalId && professionalId !== "ALL") q = q.eq("professional_id", professionalId);
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    let rows = data || [];
+
+    if (patientQuery && patientQuery.trim()) {
+      const qNorm = normalize(patientQuery);
+      const cpfClean = cleanCPF(patientQuery);
+
+      rows = rows.filter((p) => {
+        const patientName = normalize(p?.patient?.name || "");
+        const patientCpf = cleanCPF(p?.patient?.cpf || "");
+        return patientName.includes(qNorm) || (!!cpfClean && patientCpf === cpfClean);
+      });
+    }
+
+    return rows;
+  } catch (err) {
+    console.error("❌ Erro ao listar pagamentos detalhados:", err);
+    toast("Erro ao carregar detalhamento financeiro");
+    return [];
+  }
+}
+
 function _calcPaidPortion(payment) {
   const amount = parseFloat(payment?.amount) || 0;
   const st = payment?.status;
@@ -1202,7 +1263,9 @@ getAttestationById,
 getAttestationsByPatient,
 
 // Dashboard financeiro (Home)
+// Dashboard financeiro (Home)
 listPayments,
+listPaymentsDetailed,
 calcDashboardSummary,
 
     // Auxiliares
