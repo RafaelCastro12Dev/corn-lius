@@ -1,28 +1,30 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Agenda de atendimentos Cornélius - Gerencie agendamentos de psicologia">
   <title>Cornélius | Agenda</title>
   <!-- Ícone para Android / Chrome -->
 
 
-<!-- Ícone para iPhone / iOS -->
-<link rel="apple-touch-icon" href="/assets/img/logo.cornelio.jpg">
+  <!-- Ícone para iPhone / iOS -->
+  <link rel="apple-touch-icon" href="/assets/img/logo.cornelio.jpg">
 
-<!-- Força tela cheia no iOS -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Biocare">
+  <!-- Força tela cheia no iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Biocare">
 
-<!-- Cor da barra no Android -->
-<meta name="theme-color" content="#ffffff">
+  <!-- Cor da barra no Android -->
+  <meta name="theme-color" content="#ffffff">
 
   <link rel="icon" type="image/jpg" href="assets/img/logo.cornelio.jpg">
-  <link rel="stylesheet" href="assets/css/styles.css"/>
+  <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
+
 <body>
   <!-- ========== BARRA SUPERIOR ========== -->
   <div class="topbar">
@@ -38,12 +40,12 @@
       </div>
 
       <nav class="nav" role="navigation" aria-label="Menu principal">
-        <a href="index.html"data-admin-only>Início</a>
+        <a href="index.html" data-admin-only>Início</a>
         <a href="agenda.html" class="active">Agenda</a>
         <a href="cadastro.html" data-admin-only>Cadastro</a>
-<a href="profissionais.html" data-admin-only>Profissionais</a>
-<a href="impressoes.html">Impressões</a>
-<a href="#" id="btnLogout">Sair</a>
+        <a href="profissionais.html" data-admin-only>Profissionais</a>
+        <a href="impressoes.html">Impressões</a>
+        <a href="#" id="btnLogout">Sair</a>
 
       </nav>
     </div>
@@ -103,13 +105,7 @@
               <div class="field">
                 <label for="patientSearch">Paciente *</label>
 
-                <input
-                  id="patientSearch"
-                  type="text"
-                  placeholder="Digite nome ou CPF..."
-                  autocomplete="off"
-                  required
-                />
+                <input id="patientSearch" type="text" placeholder="Digite nome ou CPF..." autocomplete="off" required />
 
                 <!-- aqui fica o UUID real do paciente selecionado -->
                 <input id="patientId" type="hidden" />
@@ -131,27 +127,31 @@
               <label for="apptRoom">Sala de atendimento</label>
               <select id="apptRoom" name="apptRoom">
                 <option value="">— Selecione —</option>
-                <option value="Sala Infantil">Sala Infantil</option>
+                <option value="Sala Infantil 1">Sala Infantil 1</option>
+                <option value="Sala Infantil 2">Sala Infantil 2</option>
+                <option value="Sala Dra Ana Paula Cornélio">Sala Dra Ana Paula Cornélio</option>
                 <option value="Sala 1">Sala 1</option>
                 <option value="Sala 2">Sala 2</option>
                 <option value="Sala 3">Sala 3</option>
+                <option value="Sala 4">Sala 4</option>
+                <option value="Sala 5">Sala 5</option>
               </select>
             </div>
             <!-- Presença -->
-<div class="field">
-  <label for="attendanceStatus">Presença</label>
-  <select id="attendanceStatus" name="attendanceStatus">
-    <option value="pending">Pendente</option>
-    <option value="present">Compareceu</option>
-    <option value="absent">Faltou</option>
-  </select>
-</div>
+            <div class="field">
+              <label for="attendanceStatus">Presença</label>
+              <select id="attendanceStatus" name="attendanceStatus">
+                <option value="pending">Pendente</option>
+                <option value="present">Compareceu</option>
+                <option value="absent">Faltou</option>
+              </select>
+            </div>
 
             <!-- Data e hora -->
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
               <div class="field">
                 <label for="startAt">Data/hora início *</label>
-                <input id="startAt" type="datetime-local" required/>
+                <input id="startAt" type="datetime-local" required />
               </div>
             </div>
 
@@ -200,18 +200,21 @@
                   <option value="#6C757D">⚫ Cinza</option>
                   <option value="#E63946">🔴 Vermelho</option>
                   <option value="#FFC107">🟡 Amarelo</option>
-<option value="#E91E63">🌸 Rosa</option>
+                  <option value="#E91E63">🌸 Rosa</option>
+                  <option value="#F0FFF0">⚪ Bege</option>
+                  <option value="#000000">⚫ Preto</option>
                 </select>
               </div>
 
               <div class="field">
                 <label for="notes">Observações</label>
-                <input id="notes" type="text" placeholder="Ex.: Avaliação inicial, retorno, etc."/>
+                <input id="notes" type="text" placeholder="Ex.: Avaliação inicial, retorno, etc." />
               </div>
             </div>
 
             <div class="empty" style="margin-top:14px;">
-              💡 <strong>Dica:</strong> A cor pode ser padronizada por paciente ou profissional para facilitar visualização.
+              💡 <strong>Dica:</strong> A cor pode ser padronizada por paciente ou profissional para facilitar
+              visualização.
             </div>
           </div>
 
@@ -223,8 +226,8 @@
               <button class="btn" id="btnCancel" type="button">Cancelar</button>
               <!-- ✅ submit => Enter salva -->
               <button id="btnSave" type="submit" class="btn">
-  Salvar agendamento
-</button>
+                Salvar agendamento
+              </button>
 
             </div>
           </footer>
@@ -234,16 +237,17 @@
   </main>
 
   <!-- FullCalendar CDN -->
-<script src="assets/vendor/fullcalendar/index.global.min.js"></script>
-<script src="assets/vendor/fullcalendar/pt-br.global.min.js"></script>
+  <script src="assets/vendor/fullcalendar/index.global.min.js"></script>
+  <script src="assets/vendor/fullcalendar/pt-br.global.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/css/js/supabase-config.js"></script>
-<script src="assets/css/js/realtime.js"></script>
-<script src="assets/css/js/supabase-api.js"></script>
-<script src="assets/css/js/auth.js"></script>
-<script src="assets/css/js/feriados.js"></script>
-<script src="assets/css/js/agenda.js"></script>
+  <script src="assets/css/js/supabase-config.js"></script>
+  <script src="assets/css/js/realtime.js"></script>
+  <script src="assets/css/js/supabase-api.js"></script>
+  <script src="assets/css/js/auth.js"></script>
+  <script src="assets/css/js/feriados.js"></script>
+  <script src="assets/css/js/agenda.js"></script>
 
 </body>
+
 </html>
